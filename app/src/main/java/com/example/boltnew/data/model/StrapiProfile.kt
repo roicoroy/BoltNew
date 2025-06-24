@@ -1,5 +1,4 @@
-package com.goiaba.data.models.profile.strapiUser
-
+package com.example.boltnew.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

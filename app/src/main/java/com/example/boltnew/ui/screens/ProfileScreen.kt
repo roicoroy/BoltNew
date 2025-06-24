@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +27,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.model.User
+import com.example.boltnew.data.model.Profile
+import com.example.boltnew.data.model.Address
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.utils.CameraUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -88,7 +91,7 @@ fun ProfileScreen(
                 }
             },
             actions = {
-                if (!uiState.isEditing && uiState.user != null) {
+                if (!uiState.isEditing && uiState.profile != null) {
                     IconButton(onClick = { viewModel.setEditing(true) }) {
                         Icon(
                             imageVector = Icons.Default.Edit,
@@ -135,12 +138,12 @@ fun ProfileScreen(
                 }
             }
             
-            uiState.user != null -> {
+            uiState.profile != null -> {
                 if (uiState.isEditing) {
                     EditProfileContent(
-                        user = uiState.user!!,
-                        onSave = { firstName, lastName, email, address, dateOfBirth ->
-                            viewModel.updateProfile(firstName, lastName, email, address, dateOfBirth)
+                        profile = uiState.profile!!,
+                        onSave = { username, email, dateOfBirth, addresses ->
+                            viewModel.updateProfile(username, email, dateOfBirth, addresses)
                         },
                         onCancel = { viewModel.setEditing(false) },
                         onAvatarClick = {
@@ -150,11 +153,14 @@ fun ProfileScreen(
                             } else {
                                 permissionLauncher.launch(Manifest.permission.CAMERA)
                             }
-                        }
+                        },
+                        onAddAddress = { address -> viewModel.addAddress(address) },
+                        onUpdateAddress = { address -> viewModel.updateAddress(address) },
+                        onDeleteAddress = { address -> viewModel.deleteAddress(address) }
                     )
                 } else {
                     ProfileContent(
-                        user = uiState.user!!,
+                        profile = uiState.profile!!,
                         onAvatarClick = {
                             if (cameraPermissionState.status.isGranted) {
                                 capturedImageUri = CameraUtils.createImageUri(context)
@@ -173,164 +179,210 @@ fun ProfileScreen(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun ProfileContent(
-    user: User,
+    profile: Profile,
     onAvatarClick: () -> Unit
 ) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Avatar
-        AvatarSection(
-            avatarPath = user.avatarPath,
-            onClick = onAvatarClick
-        )
+        item {
+            // Avatar and basic info
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AvatarSection(
+                    avatarUrl = profile.avatar?.url,
+                    onClick = onAvatarClick
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = profile.displayName,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = profile.email,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                if (profile.role != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = profile.role.name,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        item {
+            // Basic Information Card
+            ProfileInfoCard(profile = profile)
+        }
         
-        // Profile Information
-        ProfileInfoCard(user = user)
+        if (profile.addresses.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Addresses",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            items(profile.addresses) { address ->
+                AddressCard(address = address)
+            }
+        }
+        
+        if (profile.userAdverts.isNotEmpty()) {
+            item {
+                Text(
+                    text = "My Adverts",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            items(profile.userAdverts) { advert ->
+                UserAdvertCard(advert = advert)
+            }
+        }
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun EditProfileContent(
-    user: User,
-    onSave: (String, String, String, String, LocalDate) -> Unit,
+    profile: Profile,
+    onSave: (String, String, LocalDate, List<Address>) -> Unit,
     onCancel: () -> Unit,
-    onAvatarClick: () -> Unit
+    onAvatarClick: () -> Unit,
+    onAddAddress: (Address) -> Unit,
+    onUpdateAddress: (Address) -> Unit,
+    onDeleteAddress: (Address) -> Unit
 ) {
-    var firstName by remember { mutableStateOf(user.firstName) }
-    var lastName by remember { mutableStateOf(user.lastName) }
-    var email by remember { mutableStateOf(user.email) }
-    var address by remember { mutableStateOf(user.address) }
-    var dateOfBirth by remember { mutableStateOf(user.dateOfBirth) }
+    var username by remember { mutableStateOf(profile.username) }
+    var email by remember { mutableStateOf(profile.email) }
+    var dateOfBirth by remember { mutableStateOf(profile.dateOfBirth) }
     
     val dateDialogState = rememberMaterialDialogState()
     
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Avatar
-        AvatarSection(
-            avatarPath = user.avatarPath,
-            onClick = onAvatarClick,
-            isEditing = true
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Edit Form
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
+        item {
+            // Avatar
             Column(
-                modifier = Modifier.padding(20.dp)
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Edit Profile",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                AvatarSection(
+                    avatarUrl = profile.avatar?.url,
+                    onClick = onAvatarClick,
+                    isEditing = true
                 )
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                // First Name
-                OutlinedTextField(
-                    value = firstName,
-                    onValueChange = { firstName = it },
-                    label = { Text("First Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Last Name
-                OutlinedTextField(
-                    value = lastName,
-                    onValueChange = { lastName = it },
-                    label = { Text("Last Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Email
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = KeyboardType.Email
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Address
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = { Text("Address") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Date of Birth
-                OutlinedTextField(
-                    value = dateOfBirth.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                    onValueChange = { },
-                    label = { Text("Date of Birth") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { dateDialogState.show() },
-                    enabled = false,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Date"
-                        )
-                    }
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            }
+        }
+        
+        item {
+            // Edit Form
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onCancel,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel")
-                    }
+                    Text(
+                        text = "Edit Profile",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     
-                    Button(
-                        onClick = {
-                            onSave(firstName, lastName, email, address, dateOfBirth)
-                        },
-                        modifier = Modifier.weight(1f)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Username
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Email
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Date of Birth
+                    OutlinedTextField(
+                        value = dateOfBirth.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                        onValueChange = { },
+                        label = { Text("Date of Birth") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { dateDialogState.show() },
+                        enabled = false,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "Select Date"
+                            )
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Save")
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel")
+                        }
+                        
+                        Button(
+                            onClick = {
+                                onSave(username, email, dateOfBirth, profile.addresses)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Save")
+                        }
                     }
                 }
             }
@@ -356,12 +408,10 @@ private fun EditProfileContent(
 
 @Composable
 private fun AvatarSection(
-    avatarPath: String?,
+    avatarUrl: String?,
     onClick: () -> Unit,
     isEditing: Boolean = false
 ) {
-    val context = LocalContext.current
-    
     Box(
         contentAlignment = Alignment.BottomEnd
     ) {
@@ -372,9 +422,9 @@ private fun AvatarSection(
             shape = CircleShape,
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            if (avatarPath != null && File(avatarPath).exists()) {
+            if (avatarUrl != null) {
                 AsyncImage(
-                    model = File(avatarPath),
+                    model = if (avatarUrl.startsWith("http")) avatarUrl else File(avatarUrl),
                     contentDescription = "Profile Avatar",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -409,7 +459,7 @@ private fun AvatarSection(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Take Photo",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -430,7 +480,7 @@ private fun AvatarSection(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun ProfileInfoCard(user: User) {
+private fun ProfileInfoCard(profile: Profile) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -450,26 +500,109 @@ private fun ProfileInfoCard(user: User) {
             
             ProfileInfoItem(
                 icon = Icons.Default.Person,
-                label = "Full Name",
-                value = user.fullName
+                label = "Username",
+                value = profile.username
             )
             
             ProfileInfoItem(
                 icon = Icons.Default.Email,
                 label = "Email",
-                value = user.email
-            )
-            
-            ProfileInfoItem(
-                icon = Icons.Default.Home,
-                label = "Address",
-                value = user.address
+                value = profile.email
             )
             
             ProfileInfoItem(
                 icon = Icons.Default.DateRange,
                 label = "Date of Birth",
-                value = user.dateOfBirth.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
+                value = profile.dateOfBirth.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
+            )
+            
+            if (profile.fullAddress.isNotBlank()) {
+                ProfileInfoItem(
+                    icon = Icons.Default.Home,
+                    label = "Primary Address",
+                    value = profile.fullAddress
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddressCard(address: Address) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = address.fullName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = buildString {
+                    append(address.firstLineAddress)
+                    if (address.secondLineAddress.isNotBlank()) {
+                        append("\n${address.secondLineAddress}")
+                    }
+                    append("\n${address.city} ${address.postCode}")
+                    append("\n${address.country}")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            if (address.phoneNumber != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Phone",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = address.phoneNumber,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserAdvertCard(advert: com.example.boltnew.data.model.UserAdvert) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = advert.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = advert.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
             )
         }
     }

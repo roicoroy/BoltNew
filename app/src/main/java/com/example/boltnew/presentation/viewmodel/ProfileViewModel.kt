@@ -2,10 +2,14 @@ package com.example.boltnew.presentation.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.boltnew.data.model.User
-import com.example.boltnew.data.repository.UserRepository
+import com.example.boltnew.data.model.Profile
+import com.example.boltnew.data.model.Address
+import com.example.boltnew.data.model.UserAdvert
+import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.utils.ImageUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,22 +18,23 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class ProfileViewModel(
-    private val userRepository: UserRepository
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
     init {
-        loadUserProfile()
+        loadProfile()
     }
     
-    private fun loadUserProfile() {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun loadProfile() {
         viewModelScope.launch {
             try {
-                userRepository.getUserProfile().collect { user ->
+                profileRepository.getProfile().collect { profile ->
                     _uiState.value = _uiState.value.copy(
-                        user = user,
+                        profile = profile,
                         isLoading = false,
                         error = null
                     )
@@ -43,26 +48,29 @@ class ProfileViewModel(
         }
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     fun updateProfile(
-        firstName: String,
-        lastName: String,
+        username: String,
         email: String,
-        address: String,
-        dateOfBirth: LocalDate
+        dateOfBirth: LocalDate,
+        addresses: List<Address> = emptyList()
     ) {
         viewModelScope.launch {
             try {
-                val currentUser = _uiState.value.user
-                val updatedUser = User(
-                    firstName = firstName,
-                    lastName = lastName,
+                val currentProfile = _uiState.value.profile
+                val updatedProfile = currentProfile?.copy(
+                    username = username,
                     email = email,
-                    address = address,
                     dateOfBirth = dateOfBirth,
-                    avatarPath = currentUser?.avatarPath
+                    addresses = addresses.ifEmpty { currentProfile.addresses }
+                ) ?: Profile(
+                    username = username,
+                    email = email,
+                    dateOfBirth = dateOfBirth,
+                    addresses = addresses
                 )
                 
-                userRepository.updateUserProfile(updatedUser)
+                profileRepository.updateProfile(updatedProfile)
                 
                 _uiState.value = _uiState.value.copy(
                     isEditing = false,
@@ -80,7 +88,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 val savedPath = ImageUtils.saveImageToInternalStorage(context, imageUri)
-                userRepository.updateAvatarPath(savedPath)
+                profileRepository.updateAvatar(savedPath, savedPath)
                 
                 _uiState.value = _uiState.value.copy(
                     error = null
@@ -93,8 +101,68 @@ class ProfileViewModel(
         }
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun addAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                val currentProfile = _uiState.value.profile
+                if (currentProfile != null) {
+                    val updatedAddresses = currentProfile.addresses + address
+                    val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
+                    profileRepository.updateProfile(updatedProfile)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to add address: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun updateAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                val currentProfile = _uiState.value.profile
+                if (currentProfile != null) {
+                    val updatedAddresses = currentProfile.addresses.map { 
+                        if (it.id == address.id) address else it 
+                    }
+                    val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
+                    profileRepository.updateProfile(updatedProfile)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to update address: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun deleteAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                val currentProfile = _uiState.value.profile
+                if (currentProfile != null) {
+                    val updatedAddresses = currentProfile.addresses.filter { it.id != address.id }
+                    val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
+                    profileRepository.updateProfile(updatedProfile)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to delete address: ${e.message}"
+                )
+            }
+        }
+    }
+    
     fun setEditing(isEditing: Boolean) {
         _uiState.value = _uiState.value.copy(isEditing = isEditing)
+    }
+    
+    fun setEditingAddress(address: Address?) {
+        _uiState.value = _uiState.value.copy(editingAddress = address)
     }
     
     fun clearError() {
@@ -103,8 +171,9 @@ class ProfileViewModel(
 }
 
 data class ProfileUiState(
-    val user: User? = null,
+    val profile: Profile? = null,
     val isLoading: Boolean = true,
     val isEditing: Boolean = false,
+    val editingAddress: Address? = null,
     val error: String? = null
 )
