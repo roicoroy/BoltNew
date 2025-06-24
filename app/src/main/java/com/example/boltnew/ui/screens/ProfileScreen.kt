@@ -476,7 +476,7 @@ private fun AvatarSection(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.CameraAlt,
+                    imageVector = Icons.Default.Person,
                     contentDescription = "Take Photo",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
