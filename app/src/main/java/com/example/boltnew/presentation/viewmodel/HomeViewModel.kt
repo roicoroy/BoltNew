@@ -4,13 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.Product
 import com.example.boltnew.data.repository.ProductRepository
+import com.example.boltnew.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -25,6 +27,7 @@ class HomeViewModel(
         viewModelScope.launch {
             try {
                 productRepository.initializeData()
+                userRepository.initializeDefaultProfile()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

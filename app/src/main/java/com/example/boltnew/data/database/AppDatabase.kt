@@ -6,13 +6,14 @@ import androidx.room.RoomDatabase
 import android.content.Context
 
 @Database(
-    entities = [ProductEntity::class],
-    version = 1,
+    entities = [ProductEntity::class, UserEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     
     abstract fun productDao(): ProductDao
+    abstract fun userDao(): UserDao
     
     companion object {
         const val DATABASE_NAME = "product_database"
