@@ -2,8 +2,10 @@ package com.example.boltnew.ui.screens
 
 import android.Manifest
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -37,6 +39,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun ProfileScreen(
@@ -120,7 +123,7 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error,
+                            text = uiState.error!!,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -135,7 +138,7 @@ fun ProfileScreen(
             uiState.user != null -> {
                 if (uiState.isEditing) {
                     EditProfileContent(
-                        user = uiState.user,
+                        user = uiState.user!!,
                         onSave = { firstName, lastName, email, address, dateOfBirth ->
                             viewModel.updateProfile(firstName, lastName, email, address, dateOfBirth)
                         },
@@ -151,7 +154,7 @@ fun ProfileScreen(
                     )
                 } else {
                     ProfileContent(
-                        user = uiState.user,
+                        user = uiState.user!!,
                         onAvatarClick = {
                             if (cameraPermissionState.status.isGranted) {
                                 capturedImageUri = CameraUtils.createImageUri(context)
@@ -167,6 +170,7 @@ fun ProfileScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun ProfileContent(
     user: User,
@@ -192,6 +196,7 @@ private fun ProfileContent(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun EditProfileContent(
     user: User,
@@ -404,7 +409,7 @@ private fun AvatarSection(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.CameraAlt,
+                    imageVector = Icons.Default.Person,
                     contentDescription = "Take Photo",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -423,6 +428,7 @@ private fun AvatarSection(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun ProfileInfoCard(user: User) {
     Card(
