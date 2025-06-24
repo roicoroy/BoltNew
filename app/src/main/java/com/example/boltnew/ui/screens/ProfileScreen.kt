@@ -76,41 +76,42 @@ fun ProfileScreen(
         }
     }
     
-    Column(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = { Text("Profile") },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back"
-                    )
-                }
-            },
-            actions = {
-                if (!uiState.isEditing && uiState.profile != null) {
-                    IconButton(onClick = { viewModel.setEditing(true) }) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Profile") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Profile"
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
                         )
                     }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface
+                },
+                actions = {
+                    if (!uiState.isEditing && uiState.profile != null) {
+                        IconButton(onClick = { viewModel.setEditing(true) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile"
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        )
-        
+        }
+    ) { paddingValues ->
         // Content
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -119,7 +120,9 @@ fun ProfileScreen(
             
             uiState.error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -142,6 +145,7 @@ fun ProfileScreen(
                 if (uiState.isEditing) {
                     EditProfileContent(
                         profile = uiState.profile!!,
+                        paddingValues = paddingValues,
                         onSave = { username, email, dateOfBirth, addresses ->
                             viewModel.updateProfile(username, email, dateOfBirth, addresses)
                         },
@@ -161,6 +165,7 @@ fun ProfileScreen(
                 } else {
                     ProfileContent(
                         profile = uiState.profile!!,
+                        paddingValues = paddingValues,
                         onAvatarClick = {
                             if (cameraPermissionState.status.isGranted) {
                                 capturedImageUri = CameraUtils.createImageUri(context)
@@ -180,18 +185,24 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     profile: Profile,
+    paddingValues: PaddingValues,
     onAvatarClick: () -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() + 16.dp,
+            bottom = paddingValues.calculateBottomPadding() + 16.dp,
+            start = 16.dp,
+            end = 16.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             // Avatar and basic info
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 AvatarSection(
                     avatarUrl = profile.avatar?.url,
@@ -268,6 +279,7 @@ private fun ProfileContent(
 @Composable
 private fun EditProfileContent(
     profile: Profile,
+    paddingValues: PaddingValues,
     onSave: (String, String, LocalDate, List<Address>) -> Unit,
     onCancel: () -> Unit,
     onAvatarClick: () -> Unit,
@@ -282,15 +294,20 @@ private fun EditProfileContent(
     val dateDialogState = rememberMaterialDialogState()
     
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() + 16.dp,
+            bottom = paddingValues.calculateBottomPadding() + 16.dp,
+            start = 16.dp,
+            end = 16.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             // Avatar
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 AvatarSection(
                     avatarUrl = profile.avatar?.url,
