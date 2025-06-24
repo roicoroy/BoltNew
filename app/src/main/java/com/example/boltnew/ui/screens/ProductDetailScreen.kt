@@ -76,7 +76,7 @@ fun ProductDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error,
+                            text = uiState.error!!,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -90,7 +90,7 @@ fun ProductDetailScreen(
             
             uiState.product != null -> {
                 ProductDetailContent(
-                    product = uiState.product,
+                    product = uiState.product!!,
                     onAddToCart = { viewModel.addToCart() },
                     modifier = Modifier.fillMaxSize()
                 )
