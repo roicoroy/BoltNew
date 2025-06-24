@@ -2,7 +2,7 @@ package com.example.boltnew.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.boltnew.data.Product
+import com.example.boltnew.data.model.Product
 import com.example.boltnew.data.repository.ProductRepository
 import com.example.boltnew.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow

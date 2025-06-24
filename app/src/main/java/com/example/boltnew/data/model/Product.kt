@@ -1,4 +1,4 @@
-package com.example.boltnew.data
+package com.example.boltnew.data.model
 
 data class Product(
     val id: Int,

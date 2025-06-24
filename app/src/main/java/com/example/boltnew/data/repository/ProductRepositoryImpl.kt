@@ -1,6 +1,6 @@
 package com.example.boltnew.data.repository
 
-import com.example.boltnew.data.Product
+import com.example.boltnew.data.model.Product
 import com.example.boltnew.data.database.ProductDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity

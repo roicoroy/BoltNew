@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.Product
+import com.example.boltnew.data.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,12 +1,16 @@
 package com.example.boltnew.data.mapper
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.UserEntity
 import com.example.boltnew.data.model.User
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun UserEntity.toDomain(): User {
     return User(
         id = id,
@@ -19,6 +23,7 @@ fun UserEntity.toDomain(): User {
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun User.toEntity(): UserEntity {
     return UserEntity(
         id = id,

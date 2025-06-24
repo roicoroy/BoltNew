@@ -1,6 +1,6 @@
 package com.example.boltnew.data.repository
 
-import com.example.boltnew.data.Product
+import com.example.boltnew.data.model.Product
 import kotlinx.coroutines.flow.Flow
 
 interface ProductRepository {

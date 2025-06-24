@@ -1,6 +1,6 @@
 package com.example.boltnew.data.mapper
 
-import com.example.boltnew.data.Product
+import com.example.boltnew.data.model.Product
 import com.example.boltnew.data.database.ProductEntity
 
 fun ProductEntity.toDomain(): Product {
