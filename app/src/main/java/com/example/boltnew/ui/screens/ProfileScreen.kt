@@ -330,7 +330,7 @@ private fun AvatarSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CameraAlt,
+                        imageVector = Icons.Default.Person,
                         contentDescription = "Take Photo",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -396,7 +396,7 @@ private fun ProfileInfoCard(profile: Profile) {
             
             if (profile.role != null) {
                 ProfileInfoItem(
-                    icon = Icons.Default.Badge,
+                    icon = Icons.Default.DateRange,
                     label = "Role",
                     value = profile.role.name
                 )
@@ -489,7 +489,7 @@ private fun UserAdvertCard(advert: com.example.boltnew.data.model.UserAdvert) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Article,
+                    imageVector = Icons.Default.Home,
                     contentDescription = "Advert",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
