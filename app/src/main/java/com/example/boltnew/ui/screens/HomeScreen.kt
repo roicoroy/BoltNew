@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.boltnew.presentation.viewmodel.HomeViewModel
 import com.example.boltnew.ui.components.AdvertCard
+import com.example.boltnew.utils.DisplayResult
 import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 
