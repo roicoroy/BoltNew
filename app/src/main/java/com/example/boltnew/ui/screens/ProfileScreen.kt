@@ -8,8 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -188,90 +186,98 @@ private fun ProfileContent(
     paddingValues: PaddingValues,
     onAvatarClick: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            top = paddingValues.calculateTopPadding() + 16.dp,
-            bottom = paddingValues.calculateBottomPadding() + 16.dp,
-            start = 16.dp,
-            end = 16.dp
-        ),
+    val scrollState = rememberScrollState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            // Avatar and basic info
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+        // Avatar and basic info
+        AvatarSection(
+            avatarUrl = profile.avatar?.url,
+            onClick = onAvatarClick
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = profile.displayName,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Text(
+            text = profile.email,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        if (profile.role != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp)
             ) {
-                AvatarSection(
-                    avatarUrl = profile.avatar?.url,
-                    onClick = onAvatarClick
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
                 Text(
-                    text = profile.displayName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    text = profile.role.name,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                
-                Text(
-                    text = profile.email,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                if (profile.role != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = profile.role.name,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
             }
         }
         
-        item {
-            // Basic Information Card
-            ProfileInfoCard(profile = profile)
-        }
+        Spacer(modifier = Modifier.height(8.dp))
         
+        // Basic Information Card
+        ProfileInfoCard(profile = profile)
+        
+        // Addresses Section
         if (profile.addresses.isNotEmpty()) {
-            item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = "Addresses",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-            }
-            
-            items(profile.addresses) { address ->
-                AddressCard(address = address)
+                
+                profile.addresses.forEach { address ->
+                    AddressCard(address = address)
+                }
             }
         }
         
+        // User Adverts Section
         if (profile.userAdverts.isNotEmpty()) {
-            item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = "My Adverts",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-            }
-            
-            items(profile.userAdverts) { advert ->
-                UserAdvertCard(advert = advert)
+                
+                profile.userAdverts.forEach { advert ->
+                    UserAdvertCard(advert = advert)
+                }
             }
         }
+        
+        // Add some bottom padding for better scrolling experience
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
@@ -292,118 +298,152 @@ private fun EditProfileContent(
     var dateOfBirth by remember { mutableStateOf(profile.dateOfBirth) }
     
     val dateDialogState = rememberMaterialDialogState()
+    val scrollState = rememberScrollState()
     
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            top = paddingValues.calculateTopPadding() + 16.dp,
-            bottom = paddingValues.calculateBottomPadding() + 16.dp,
-            start = 16.dp,
-            end = 16.dp
-        ),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            // Avatar
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                AvatarSection(
-                    avatarUrl = profile.avatar?.url,
-                    onClick = onAvatarClick,
-                    isEditing = true
-                )
-            }
-        }
+        // Avatar
+        AvatarSection(
+            avatarUrl = profile.avatar?.url,
+            onClick = onAvatarClick,
+            isEditing = true
+        )
         
-        item {
-            // Edit Form
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                shape = RoundedCornerShape(16.dp)
+        // Edit Form
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Edit Profile",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                Text(
+                    text = "Edit Profile",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Username
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = KeyboardType.Email
                     )
-                    
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    // Username
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Email
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Email
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Date of Birth
+                OutlinedTextField(
+                    value = dateOfBirth.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                    onValueChange = { },
+                    label = { Text("Date of Birth") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { dateDialogState.show() },
+                    enabled = false,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Select Date"
                         )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Date of Birth
-                    OutlinedTextField(
-                        value = dateOfBirth.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                        onValueChange = { },
-                        label = { Text("Date of Birth") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { dateDialogState.show() },
-                        enabled = false,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select Date"
-                            )
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Action Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        OutlinedButton(
-                            onClick = onCancel,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel")
-                        }
-                        
-                        Button(
-                            onClick = {
-                                onSave(username, email, dateOfBirth, profile.addresses)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Save")
-                        }
+                        Text("Cancel")
+                    }
+                    
+                    Button(
+                        onClick = {
+                            onSave(username, email, dateOfBirth, profile.addresses)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save")
                     }
                 }
             }
         }
+        
+        // Addresses Section in Edit Mode
+        if (profile.addresses.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Addresses",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                profile.addresses.forEach { address ->
+                    AddressCard(address = address)
+                }
+            }
+        }
+        
+        // User Adverts Section in Edit Mode
+        if (profile.userAdverts.isNotEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "My Adverts",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                profile.userAdverts.forEach { advert ->
+                    UserAdvertCard(advert = advert)
+                }
+            }
+        }
+        
+        // Add some bottom padding for better scrolling experience
+        Spacer(modifier = Modifier.height(32.dp))
     }
     
     // Date Picker Dialog
