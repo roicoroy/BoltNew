@@ -29,6 +29,7 @@ import com.example.boltnew.data.model.Profile
 import com.example.boltnew.data.model.Address
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.utils.CameraUtils
+import com.example.boltnew.utils.RequestState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -48,6 +49,7 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
+    val profileState by viewModel.profileState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
@@ -74,6 +76,15 @@ fun ProfileScreen(
         }
     }
     
+    // Show operation message
+    uiState.operationMessage?.let { message ->
+        LaunchedEffect(message) {
+            // Auto-clear message after 3 seconds
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearOperationMessage()
+        }
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,7 +98,7 @@ fun ProfileScreen(
                     }
                 },
                 actions = {
-                    if (!uiState.isEditing && uiState.profile != null) {
+                    if (!uiState.isEditing && profileState is RequestState.Success) {
                         IconButton(onClick = { viewModel.setEditing(true) }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
@@ -101,49 +112,74 @@ fun ProfileScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
+        },
+        snackbarHost = {
+            uiState.operationMessage?.let { message ->
+                SnackbarHost(
+                    hostState = remember { SnackbarHostState() }.apply {
+                        LaunchedEffect(message) {
+                            showSnackbar(message)
+                        }
+                    }
+                )
+            }
         }
     ) { paddingValues ->
         // Content
-        when {
-            uiState.isLoading -> {
+        profileState.DisplayResult(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            onLoading = {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading profile...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
-            
-            uiState.error != null -> {
+            },
+            onError = { errorMessage ->
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error!!,
+                            text = errorMessage,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(onClick = onBackClick) {
+                                Text("Go Back")
+                            }
+                            Button(onClick = { viewModel.retryLoadProfile() }) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
-            }
-            
-            uiState.profile != null -> {
+            },
+            onSuccess = { profile ->
                 if (uiState.isEditing) {
                     EditProfileContent(
-                        profile = uiState.profile!!,
-                        paddingValues = paddingValues,
+                        profile = profile,
+                        paddingValues = PaddingValues(0.dp),
                         onSave = { username, email, dateOfBirth, addresses ->
                             viewModel.updateProfile(username, email, dateOfBirth, addresses)
                         },
@@ -162,8 +198,8 @@ fun ProfileScreen(
                     )
                 } else {
                     ProfileContent(
-                        profile = uiState.profile!!,
-                        paddingValues = paddingValues,
+                        profile = profile,
+                        paddingValues = PaddingValues(0.dp),
                         onAvatarClick = {
                             if (cameraPermissionState.status.isGranted) {
                                 capturedImageUri = CameraUtils.createImageUri(context)
@@ -175,7 +211,7 @@ fun ProfileScreen(
                     )
                 }
             }
-        }
+        )
     }
 }
 
@@ -192,12 +228,7 @@ private fun ProfileContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(
-                top = paddingValues.calculateTopPadding() + 16.dp,
-                bottom = paddingValues.calculateBottomPadding() + 16.dp,
-                start = 16.dp,
-                end = 16.dp
-            ),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -304,12 +335,7 @@ private fun EditProfileContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(
-                top = paddingValues.calculateTopPadding() + 16.dp,
-                bottom = paddingValues.calculateBottomPadding() + 16.dp,
-                start = 16.dp,
-                end = 16.dp
-            ),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

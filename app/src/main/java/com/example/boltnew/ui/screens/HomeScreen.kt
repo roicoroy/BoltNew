@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.boltnew.presentation.viewmodel.HomeViewModel
 import com.example.boltnew.ui.components.AdvertCard
+import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -27,6 +28,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel()
 ) {
+    val advertsState by viewModel.advertsState.collectAsState()
+    val categoriesState by viewModel.categoriesState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
@@ -69,43 +72,66 @@ fun HomeScreen(
         )
         
         // Category Filter
-        if (uiState.categories.isNotEmpty()) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    FilterChip(
-                        onClick = { viewModel.filterByCategory(null) },
-                        label = { Text("All") },
-                        selected = uiState.selectedCategory == null
-                    )
-                }
-                items(uiState.categories) { category ->
-                    FilterChip(
-                        onClick = { viewModel.filterByCategory(category) },
-                        label = { Text(category) },
-                        selected = uiState.selectedCategory == category
-                    )
+        categoriesState.DisplayResult(
+            onLoading = {
+                // Categories loading is silent
+            },
+            onError = { 
+                // Categories error is silent
+            },
+            onSuccess = { categories ->
+                if (categories.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            FilterChip(
+                                onClick = { 
+                                    viewModel.filterByCategory(null)
+                                    viewModel.clearSelectedCategory()
+                                },
+                                label = { Text("All") },
+                                selected = uiState.selectedCategory == null
+                            )
+                        }
+                        items(categories) { category ->
+                            FilterChip(
+                                onClick = { viewModel.filterByCategory(category) },
+                                label = { Text(category) },
+                                selected = uiState.selectedCategory == category
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        )
         
-        // Content
-        when {
-            uiState.isLoading -> {
+        // Adverts Content
+        advertsState.DisplayResult(
+            modifier = Modifier.fillMaxSize(),
+            onLoading = {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading adverts...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
-            
-            uiState.error != null -> {
+            },
+            onError = { errorMessage ->
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -114,7 +140,7 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error!!,
+                            text = errorMessage,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -124,35 +150,59 @@ fun HomeScreen(
                         }
                     }
                 }
-            }
-            
-            uiState.adverts.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (searchQuery.isNotBlank()) "No adverts found for \"$searchQuery\"" else "No adverts available",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-            
-            else -> {
-                // Advert List
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(uiState.adverts) { advert ->
-                        AdvertCard(
-                            advert = advert,
-                            onClick = { onAdvertClick(advert.id) }
-                        )
+            },
+            onSuccess = { adverts ->
+                if (adverts.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = if (searchQuery.isNotBlank()) {
+                                    "No adverts found for \"$searchQuery\""
+                                } else if (uiState.selectedCategory != null) {
+                                    "No adverts found in \"${uiState.selectedCategory}\" category"
+                                } else {
+                                    "No adverts available"
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            if (searchQuery.isNotBlank() || uiState.selectedCategory != null) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedButton(
+                                    onClick = {
+                                        searchQuery = ""
+                                        viewModel.clearSearchQuery()
+                                        viewModel.clearSelectedCategory()
+                                        viewModel.refreshAdverts()
+                                    }
+                                ) {
+                                    Text("Show All Adverts")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Advert List
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(adverts) { advert ->
+                            AdvertCard(
+                                advert = advert,
+                                onClick = { onAdvertClick(advert.id) }
+                            )
+                        }
                     }
                 }
             }
-        }
+        )
     }
 }

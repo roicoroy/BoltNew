@@ -7,15 +7,24 @@ import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.Advert
 import com.example.boltnew.data.repository.AdvertRepository
 import com.example.boltnew.data.repository.ProfileRepository
+import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val advertRepository: AdvertRepository,
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
+    
+    private val _advertsState = MutableStateFlow<RequestState<List<Advert>>>(RequestState.Idle)
+    val advertsState: StateFlow<RequestState<List<Advert>>> = _advertsState.asStateFlow()
+    
+    private val _categoriesState = MutableStateFlow<RequestState<List<String>>>(RequestState.Idle)
+    val categoriesState: StateFlow<RequestState<List<String>>> = _categoriesState.asStateFlow()
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -33,10 +42,7 @@ class HomeViewModel(
                 advertRepository.initializeData()
                 profileRepository.initializeDefaultProfile()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to initialize data: ${e.message}"
-                )
+                // Initialization errors are handled silently
             }
         }
     }
@@ -44,34 +50,31 @@ class HomeViewModel(
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadAdverts() {
         viewModelScope.launch {
-            try {
-                advertRepository.getAllAdverts().collect { adverts ->
-                    _uiState.value = _uiState.value.copy(
-                        adverts = adverts,
-                        isLoading = false,
-                        error = null
-                    )
+            advertRepository.getAllAdverts()
+                .onStart { 
+                    _advertsState.value = RequestState.Loading 
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to load adverts: ${e.message}"
-                )
-            }
+                .catch { exception ->
+                    _advertsState.value = RequestState.Error("Failed to load adverts: ${exception.message}")
+                }
+                .collect { adverts ->
+                    _advertsState.value = RequestState.Success(adverts)
+                }
         }
     }
     
     private fun loadCategories() {
         viewModelScope.launch {
-            try {
-                advertRepository.getAllCategories().collect { categories ->
-                    _uiState.value = _uiState.value.copy(
-                        categories = categories
-                    )
+            advertRepository.getAllCategories()
+                .onStart { 
+                    _categoriesState.value = RequestState.Loading 
                 }
-            } catch (e: Exception) {
-                // Categories loading failure shouldn't block the main content
-            }
+                .catch { exception ->
+                    _categoriesState.value = RequestState.Error("Failed to load categories: ${exception.message}")
+                }
+                .collect { categories ->
+                    _categoriesState.value = RequestState.Success(categories)
+                }
         }
     }
     
@@ -79,29 +82,27 @@ class HomeViewModel(
     fun filterByCategory(categoryName: String?) {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(
-                    selectedCategory = categoryName,
-                    isLoading = true
-                )
+                _uiState.value = _uiState.value.copy(selectedCategory = categoryName)
+                _advertsState.value = RequestState.Loading
                 
                 if (categoryName == null) {
                     loadAdverts()
                 } else {
                     // Find category slug by name (simplified approach)
                     val categorySlug = categoryName.lowercase().replace(" ", "-")
-                    advertRepository.getAdvertsByCategory(categorySlug).collect { adverts ->
-                        _uiState.value = _uiState.value.copy(
-                            adverts = adverts,
-                            isLoading = false,
-                            error = null
-                        )
-                    }
+                    advertRepository.getAdvertsByCategory(categorySlug)
+                        .onStart { 
+                            _advertsState.value = RequestState.Loading 
+                        }
+                        .catch { exception ->
+                            _advertsState.value = RequestState.Error("Failed to filter adverts: ${exception.message}")
+                        }
+                        .collect { adverts ->
+                            _advertsState.value = RequestState.Success(adverts)
+                        }
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to filter adverts: ${e.message}"
-                )
+                _advertsState.value = RequestState.Error("Failed to filter adverts: ${e.message}")
             }
         }
     }
@@ -110,43 +111,45 @@ class HomeViewModel(
     fun searchAdverts(query: String) {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(
-                    searchQuery = query,
-                    isLoading = true
-                )
+                _uiState.value = _uiState.value.copy(searchQuery = query)
+                _advertsState.value = RequestState.Loading
                 
                 if (query.isBlank()) {
                     loadAdverts()
                 } else {
-                    advertRepository.searchAdverts(query).collect { adverts ->
-                        _uiState.value = _uiState.value.copy(
-                            adverts = adverts,
-                            isLoading = false,
-                            error = null
-                        )
-                    }
+                    advertRepository.searchAdverts(query)
+                        .onStart { 
+                            _advertsState.value = RequestState.Loading 
+                        }
+                        .catch { exception ->
+                            _advertsState.value = RequestState.Error("Failed to search adverts: ${exception.message}")
+                        }
+                        .collect { adverts ->
+                            _advertsState.value = RequestState.Success(adverts)
+                        }
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to search adverts: ${e.message}"
-                )
+                _advertsState.value = RequestState.Error("Failed to search adverts: ${e.message}")
             }
         }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
     fun refreshAdverts() {
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        _advertsState.value = RequestState.Loading
         loadAdverts()
+    }
+    
+    fun clearSelectedCategory() {
+        _uiState.value = _uiState.value.copy(selectedCategory = null)
+    }
+    
+    fun clearSearchQuery() {
+        _uiState.value = _uiState.value.copy(searchQuery = "")
     }
 }
 
 data class HomeUiState(
-    val adverts: List<Advert> = emptyList(),
-    val categories: List<String> = emptyList(),
     val selectedCategory: String? = null,
-    val searchQuery: String = "",
-    val isLoading: Boolean = true,
-    val error: String? = null
+    val searchQuery: String = ""
 )

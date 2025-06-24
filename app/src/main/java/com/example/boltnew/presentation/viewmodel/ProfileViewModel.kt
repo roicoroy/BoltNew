@@ -11,15 +11,21 @@ import com.example.boltnew.data.model.Address
 import com.example.boltnew.data.model.UserAdvert
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.utils.ImageUtils
+import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
+    
+    private val _profileState = MutableStateFlow<RequestState<Profile>>(RequestState.Idle)
+    val profileState: StateFlow<RequestState<Profile>> = _profileState.asStateFlow()
     
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -31,20 +37,20 @@ class ProfileViewModel(
     @RequiresApi(Build.VERSION_CODES.O)
     private fun loadProfile() {
         viewModelScope.launch {
-            try {
-                profileRepository.getProfile().collect { profile ->
-                    _uiState.value = _uiState.value.copy(
-                        profile = profile,
-                        isLoading = false,
-                        error = null
-                    )
+            profileRepository.getProfile()
+                .onStart { 
+                    _profileState.value = RequestState.Loading 
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to load profile: ${e.message}"
-                )
-            }
+                .catch { exception ->
+                    _profileState.value = RequestState.Error("Failed to load profile: ${exception.message}")
+                }
+                .collect { profile ->
+                    _profileState.value = if (profile != null) {
+                        RequestState.Success(profile)
+                    } else {
+                        RequestState.Error("Profile not found")
+                    }
+                }
         }
     }
     
@@ -57,28 +63,40 @@ class ProfileViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val currentProfile = _uiState.value.profile
-                val updatedProfile = currentProfile?.copy(
-                    username = username,
-                    email = email,
-                    dateOfBirth = dateOfBirth,
-                    addresses = addresses.ifEmpty { currentProfile.addresses }
-                ) ?: Profile(
-                    username = username,
-                    email = email,
-                    dateOfBirth = dateOfBirth,
-                    addresses = addresses
-                )
-                
-                profileRepository.updateProfile(updatedProfile)
-                
-                _uiState.value = _uiState.value.copy(
-                    isEditing = false,
-                    error = null
-                )
+                val currentState = _profileState.value
+                if (currentState is RequestState.Success) {
+                    val currentProfile = currentState.data
+                    val updatedProfile = currentProfile.copy(
+                        username = username,
+                        email = email,
+                        dateOfBirth = dateOfBirth,
+                        addresses = addresses.ifEmpty { currentProfile.addresses }
+                    )
+                    
+                    profileRepository.updateProfile(updatedProfile)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isEditing = false,
+                        operationMessage = "Profile updated successfully"
+                    )
+                } else {
+                    val newProfile = Profile(
+                        username = username,
+                        email = email,
+                        dateOfBirth = dateOfBirth,
+                        addresses = addresses
+                    )
+                    
+                    profileRepository.saveProfile(newProfile)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isEditing = false,
+                        operationMessage = "Profile created successfully"
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to update profile: ${e.message}"
+                    operationMessage = "Failed to update profile: ${e.message}"
                 )
             }
         }
@@ -91,11 +109,11 @@ class ProfileViewModel(
                 profileRepository.updateAvatar(savedPath, savedPath)
                 
                 _uiState.value = _uiState.value.copy(
-                    error = null
+                    operationMessage = "Avatar updated successfully"
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to update avatar: ${e.message}"
+                    operationMessage = "Failed to update avatar: ${e.message}"
                 )
             }
         }
@@ -105,15 +123,20 @@ class ProfileViewModel(
     fun addAddress(address: Address) {
         viewModelScope.launch {
             try {
-                val currentProfile = _uiState.value.profile
-                if (currentProfile != null) {
+                val currentState = _profileState.value
+                if (currentState is RequestState.Success) {
+                    val currentProfile = currentState.data
                     val updatedAddresses = currentProfile.addresses + address
                     val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
                     profileRepository.updateProfile(updatedProfile)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        operationMessage = "Address added successfully"
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to add address: ${e.message}"
+                    operationMessage = "Failed to add address: ${e.message}"
                 )
             }
         }
@@ -123,17 +146,22 @@ class ProfileViewModel(
     fun updateAddress(address: Address) {
         viewModelScope.launch {
             try {
-                val currentProfile = _uiState.value.profile
-                if (currentProfile != null) {
+                val currentState = _profileState.value
+                if (currentState is RequestState.Success) {
+                    val currentProfile = currentState.data
                     val updatedAddresses = currentProfile.addresses.map { 
                         if (it.id == address.id) address else it 
                     }
                     val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
                     profileRepository.updateProfile(updatedProfile)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        operationMessage = "Address updated successfully"
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to update address: ${e.message}"
+                    operationMessage = "Failed to update address: ${e.message}"
                 )
             }
         }
@@ -143,15 +171,20 @@ class ProfileViewModel(
     fun deleteAddress(address: Address) {
         viewModelScope.launch {
             try {
-                val currentProfile = _uiState.value.profile
-                if (currentProfile != null) {
+                val currentState = _profileState.value
+                if (currentState is RequestState.Success) {
+                    val currentProfile = currentState.data
                     val updatedAddresses = currentProfile.addresses.filter { it.id != address.id }
                     val updatedProfile = currentProfile.copy(addresses = updatedAddresses)
                     profileRepository.updateProfile(updatedProfile)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        operationMessage = "Address deleted successfully"
+                    )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete address: ${e.message}"
+                    operationMessage = "Failed to delete address: ${e.message}"
                 )
             }
         }
@@ -165,15 +198,18 @@ class ProfileViewModel(
         _uiState.value = _uiState.value.copy(editingAddress = address)
     }
     
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+    fun clearOperationMessage() {
+        _uiState.value = _uiState.value.copy(operationMessage = null)
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun retryLoadProfile() {
+        loadProfile()
     }
 }
 
 data class ProfileUiState(
-    val profile: Profile? = null,
-    val isLoading: Boolean = true,
     val isEditing: Boolean = false,
     val editingAddress: Address? = null,
-    val error: String? = null
+    val operationMessage: String? = null
 )

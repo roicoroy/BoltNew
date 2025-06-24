@@ -1,4 +1,4 @@
-package com.goiaba.shared.util
+package com.example.boltnew.utils
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.boltnew.data.model.Advert
 import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
+import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 
@@ -33,7 +34,7 @@ fun AdvertDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: AdvertDetailViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val advertState by viewModel.advertState.collectAsState()
     
     LaunchedEffect(advertId) {
         viewModel.loadAdvert(advertId)
@@ -60,17 +61,27 @@ fun AdvertDetailScreen(
         )
         
         // Content
-        when {
-            uiState.isLoading -> {
+        advertState.DisplayResult(
+            modifier = Modifier.fillMaxSize(),
+            onLoading = {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading advert details...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
-            
-            uiState.error != null -> {
+            },
+            onError = { errorMessage ->
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -79,26 +90,32 @@ fun AdvertDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = uiState.error!!,
+                            text = errorMessage,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onBackClick) {
-                            Text("Go Back")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(onClick = onBackClick) {
+                                Text("Go Back")
+                            }
+                            Button(onClick = { viewModel.retryLoading(advertId) }) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
-            }
-            
-            uiState.advert != null -> {
+            },
+            onSuccess = { advert ->
                 AdvertDetailContent(
-                    advert = uiState.advert!!,
+                    advert = advert,
                     onContact = { viewModel.contactAdvertiser() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
-        }
+        )
     }
 }
 
