@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -36,12 +35,8 @@ import com.example.boltnew.utils.RequestState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.vanpra.composematerialdialogs.MaterialDialog
-import com.vanpra.composematerialdialogs.datetime.date.datepicker
-import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -98,16 +93,6 @@ fun ProfileScreen(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
                         )
-                    }
-                },
-                actions = {
-                    if (!uiState.isEditing && profileState is RequestState.Success) {
-                        IconButton(onClick = { viewModel.setEditing(true) }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Profile"
-                            )
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -179,40 +164,17 @@ fun ProfileScreen(
                 }
             },
             onSuccess = { profile ->
-                if (uiState.isEditing) {
-                    EditProfileContent(
-                        profile = profile,
-                        paddingValues = PaddingValues(0.dp),
-                        onSave = { username, email, dateOfBirth, addresses ->
-                            viewModel.updateProfile(username, email, dateOfBirth, addresses)
-                        },
-                        onCancel = { viewModel.setEditing(false) },
-                        onAvatarClick = {
-                            if (cameraPermissionState.status.isGranted) {
-                                capturedImageUri = CameraUtils.createImageUri(context)
-                                cameraLauncher.launch(capturedImageUri!!)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        },
-                        onAddAddress = { address -> viewModel.addAddress(address) },
-                        onUpdateAddress = { address -> viewModel.updateAddress(address) },
-                        onDeleteAddress = { address -> viewModel.deleteAddress(address) }
-                    )
-                } else {
-                    ProfileContent(
-                        profile = profile,
-                        paddingValues = PaddingValues(0.dp),
-                        onAvatarClick = {
-                            if (cameraPermissionState.status.isGranted) {
-                                capturedImageUri = CameraUtils.createImageUri(context)
-                                cameraLauncher.launch(capturedImageUri!!)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
+                ProfileContent(
+                    profile = profile,
+                    onAvatarClick = {
+                        if (cameraPermissionState.status.isGranted) {
+                            capturedImageUri = CameraUtils.createImageUri(context)
+                            cameraLauncher.launch(capturedImageUri!!)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
-                    )
-                }
+                    }
+                )
             }
         )
     }
@@ -222,7 +184,6 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     profile: Profile,
-    paddingValues: PaddingValues,
     onAvatarClick: () -> Unit
 ) {
     LazyColumn(
@@ -314,187 +275,10 @@ private fun ProfileContent(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun EditProfileContent(
-    profile: Profile,
-    paddingValues: PaddingValues,
-    onSave: (String, String, LocalDate, List<Address>) -> Unit,
-    onCancel: () -> Unit,
-    onAvatarClick: () -> Unit,
-    onAddAddress: (Address) -> Unit,
-    onUpdateAddress: (Address) -> Unit,
-    onDeleteAddress: (Address) -> Unit
-) {
-    var username by remember { mutableStateOf(profile.username) }
-    var email by remember { mutableStateOf(profile.email) }
-    var dateOfBirth by remember { mutableStateOf(profile.dateOfBirth) }
-    
-    val dateDialogState = rememberMaterialDialogState()
-    
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Avatar section
-        item {
-            AvatarSection(
-                avatarUrl = profile.avatar?.url,
-                onClick = onAvatarClick,
-                isEditing = true
-            )
-        }
-        
-        // Edit Form
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "Edit Profile",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    // Username
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Email
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Email
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Date of Birth
-                    OutlinedTextField(
-                        value = dateOfBirth.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
-                        onValueChange = { },
-                        label = { Text("Date of Birth") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { dateDialogState.show() },
-                        enabled = false,
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select Date"
-                            )
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Action Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onCancel,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel")
-                        }
-                        
-                        Button(
-                            onClick = {
-                                onSave(username, email, dateOfBirth, profile.addresses)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Save")
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Addresses Section in Edit Mode
-        if (profile.addresses.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Addresses",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            
-            items(profile.addresses) { address ->
-                AddressCard(address = address)
-            }
-        }
-        
-        // User Adverts Section in Edit Mode
-        if (profile.userAdverts.isNotEmpty()) {
-            item {
-                Text(
-                    text = "My Adverts",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            
-            items(profile.userAdverts) { advert ->
-                UserAdvertCard(advert = advert)
-            }
-        }
-        
-        // Add some bottom padding for better scrolling experience
-        item {
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-    
-    // Date Picker Dialog
-    MaterialDialog(
-        dialogState = dateDialogState,
-        buttons = {
-            positiveButton(text = "Ok")
-            negativeButton(text = "Cancel")
-        }
-    ) {
-        datepicker(
-            initialDate = dateOfBirth,
-            title = "Select Date of Birth"
-        ) { date ->
-            dateOfBirth = date
-        }
-    }
-}
-
 @Composable
 private fun AvatarSection(
     avatarUrl: String?,
-    onClick: () -> Unit,
-    isEditing: Boolean = false
+    onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -546,7 +330,7 @@ private fun AvatarSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Take Photo",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -555,14 +339,12 @@ private fun AvatarSection(
             }
         }
         
-        if (isEditing) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Tap to change photo",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tap to change photo",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -611,6 +393,20 @@ private fun ProfileInfoCard(profile: Profile) {
                     value = profile.fullAddress
                 )
             }
+            
+            if (profile.role != null) {
+                ProfileInfoItem(
+                    icon = Icons.Default.Badge,
+                    label = "Role",
+                    value = profile.role.name
+                )
+            }
+            
+            ProfileInfoItem(
+                icon = Icons.Default.AccountCircle,
+                label = "Account Status",
+                value = if (profile.isConfirmed) "Verified" else "Pending Verification"
+            )
         }
     }
 }
@@ -625,11 +421,22 @@ private fun AddressCard(address: Address) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = address.fullName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = "Address",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = address.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -678,11 +485,22 @@ private fun UserAdvertCard(advert: com.example.boltnew.data.model.UserAdvert) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = advert.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Article,
+                    contentDescription = "Advert",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = advert.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
