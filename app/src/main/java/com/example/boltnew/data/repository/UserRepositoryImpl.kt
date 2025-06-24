@@ -1,8 +1,11 @@
 package com.example.boltnew.data.repository
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.UserDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity
+import com.example.boltnew.data.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -11,20 +14,24 @@ class UserRepositoryImpl(
     private val userDao: UserDao
 ) : UserRepository {
     
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun getUserProfile(): Flow<User?> {
         return userDao.getUserProfile().map { entity ->
             entity?.toDomain()
         }
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun getUserProfileSync(): User? {
         return userDao.getUserProfileSync()?.toDomain()
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun saveUserProfile(user: User) {
         userDao.insertUserProfile(user.toEntity())
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun updateUserProfile(user: User) {
         userDao.updateUserProfile(user.toEntity())
     }
@@ -33,6 +40,7 @@ class UserRepositoryImpl(
         userDao.updateAvatarPath(avatarPath)
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun initializeDefaultProfile() {
         val existingProfile = getUserProfileSync()
         if (existingProfile == null) {
