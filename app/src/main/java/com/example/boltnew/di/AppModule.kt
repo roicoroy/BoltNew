@@ -24,7 +24,7 @@ val appModule = module {
     single<UserRepository> { UserRepositoryImpl(get()) }
     
     // ViewModels
-    viewModel { HomeViewModel(get()) }
+    viewModel { HomeViewModel(get(), get()) }
     viewModel { ProductDetailViewModel(get()) }
     viewModel { ProfileViewModel(get()) }
 }
