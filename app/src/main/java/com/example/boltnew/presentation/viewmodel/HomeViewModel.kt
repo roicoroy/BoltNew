@@ -1,9 +1,11 @@
 package com.example.boltnew.presentation.viewmodel
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.boltnew.data.model.Product
-import com.example.boltnew.data.repository.ProductRepository
+import com.example.boltnew.data.model.Advert
+import com.example.boltnew.data.repository.AdvertRepository
 import com.example.boltnew.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val productRepository: ProductRepository,
+    private val advertRepository: AdvertRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
     
@@ -20,13 +22,15 @@ class HomeViewModel(
     
     init {
         initializeData()
-        loadProducts()
+        loadAdverts()
+        loadCategories()
     }
     
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun initializeData() {
         viewModelScope.launch {
             try {
-                productRepository.initializeData()
+                advertRepository.initializeData()
                 userRepository.initializeDefaultProfile()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -37,12 +41,13 @@ class HomeViewModel(
         }
     }
     
-    private fun loadProducts() {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun loadAdverts() {
         viewModelScope.launch {
             try {
-                productRepository.getAllProducts().collect { products ->
+                advertRepository.getAllAdverts().collect { adverts ->
                     _uiState.value = _uiState.value.copy(
-                        products = products,
+                        adverts = adverts,
                         isLoading = false,
                         error = null
                     )
@@ -50,20 +55,98 @@ class HomeViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to load products: ${e.message}"
+                    error = "Failed to load adverts: ${e.message}"
                 )
             }
         }
     }
     
-    fun refreshProducts() {
+    private fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                advertRepository.getAllCategories().collect { categories ->
+                    _uiState.value = _uiState.value.copy(
+                        categories = categories
+                    )
+                }
+            } catch (e: Exception) {
+                // Categories loading failure shouldn't block the main content
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun filterByCategory(categoryName: String?) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(
+                    selectedCategory = categoryName,
+                    isLoading = true
+                )
+                
+                if (categoryName == null) {
+                    loadAdverts()
+                } else {
+                    // Find category slug by name (simplified approach)
+                    val categorySlug = categoryName.lowercase().replace(" ", "-")
+                    advertRepository.getAdvertsByCategory(categorySlug).collect { adverts ->
+                        _uiState.value = _uiState.value.copy(
+                            adverts = adverts,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to filter adverts: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun searchAdverts(query: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(
+                    searchQuery = query,
+                    isLoading = true
+                )
+                
+                if (query.isBlank()) {
+                    loadAdverts()
+                } else {
+                    advertRepository.searchAdverts(query).collect { adverts ->
+                        _uiState.value = _uiState.value.copy(
+                            adverts = adverts,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to search adverts: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun refreshAdverts() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-        loadProducts()
+        loadAdverts()
     }
 }
 
 data class HomeUiState(
-    val products: List<Product> = emptyList(),
+    val adverts: List<Advert> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val selectedCategory: String? = null,
+    val searchQuery: String = "",
     val isLoading: Boolean = true,
     val error: String? = null
 )

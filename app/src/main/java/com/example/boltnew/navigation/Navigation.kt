@@ -1,5 +1,7 @@
 package com.example.boltnew.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
@@ -15,9 +17,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.boltnew.ui.screens.HomeScreen
-import com.example.boltnew.ui.screens.ProductDetailScreen
+import com.example.boltnew.ui.screens.AdvertDetailScreen
 import com.example.boltnew.ui.screens.ProfileScreen
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigation(
@@ -58,8 +61,8 @@ fun AppNavigation(
         ) {
             composable("home") {
                 HomeScreen(
-                    onProductClick = { productId ->
-                        navController.navigate("product_detail/$productId")
+                    onAdvertClick = { advertId ->
+                        navController.navigate("advert_detail/$advertId")
                     }
                 )
             }
@@ -72,10 +75,10 @@ fun AppNavigation(
                 )
             }
             
-            composable("product_detail/{productId}") { backStackEntry ->
-                val productId = backStackEntry.arguments?.getString("productId")?.toIntOrNull() ?: 0
-                ProductDetailScreen(
-                    productId = productId,
+            composable("advert_detail/{advertId}") { backStackEntry ->
+                val advertId = backStackEntry.arguments?.getString("advertId")?.toIntOrNull() ?: 0
+                AdvertDetailScreen(
+                    advertId = advertId,
                     onBackClick = {
                         navController.popBackStack()
                     }
@@ -97,7 +100,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
         NavigationBar {
             NavigationBarItem(
                 icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                label = { Text("Home") },
+                label = { Text("Adverts") },
                 selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
                 onClick = {
                     navController.navigate("home") {

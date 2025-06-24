@@ -1,40 +1,42 @@
 package com.example.boltnew.ui.screens
 
-import androidx.compose.foundation.background
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.model.Product
-import com.example.boltnew.presentation.viewmodel.ProductDetailViewModel
+import com.example.boltnew.data.model.Advert
+import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
 import org.koin.androidx.compose.koinViewModel
+import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductDetailScreen(
-    productId: Int,
+fun AdvertDetailScreen(
+    advertId: Int,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ProductDetailViewModel = koinViewModel()
+    viewModel: AdvertDetailViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    LaunchedEffect(productId) {
-        viewModel.loadProduct(productId)
+    LaunchedEffect(advertId) {
+        viewModel.loadAdvert(advertId)
     }
     
     Column(
@@ -42,7 +44,7 @@ fun ProductDetailScreen(
     ) {
         // Top App Bar
         TopAppBar(
-            title = { Text("Product Details") },
+            title = { Text("Advert Details") },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(
@@ -89,10 +91,10 @@ fun ProductDetailScreen(
                 }
             }
             
-            uiState.product != null -> {
-                ProductDetailContent(
-                    product = uiState.product!!,
-                    onAddToCart = { viewModel.addToCart() },
+            uiState.advert != null -> {
+                AdvertDetailContent(
+                    advert = uiState.advert!!,
+                    onContact = { viewModel.contactAdvertiser() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -100,10 +102,11 @@ fun ProductDetailScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun ProductDetailContent(
-    product: Product,
-    onAddToCart: () -> Unit,
+private fun AdvertDetailContent(
+    advert: Advert,
+    onContact: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -111,10 +114,10 @@ private fun ProductDetailContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Product Image
+        // Advert Image
         AsyncImage(
-            model = product.imageUrl,
-            contentDescription = product.name,
+            model = advert.cover?.url,
+            contentDescription = advert.title,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
@@ -130,7 +133,7 @@ private fun ProductDetailContent(
             shape = RoundedCornerShape(20.dp)
         ) {
             Text(
-                text = product.category.uppercase(),
+                text = advert.category.name.uppercase(),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -140,75 +143,31 @@ private fun ProductDetailContent(
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        // Product Name
+        // Advert Title
         Text(
-            text = product.name,
+            text = advert.title,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Rating and Reviews
+        // Published Date
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            repeat(5) { index ->
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = if (index < product.rating.toInt()) Color(0xFFFFB000) else Color(0xFFE0E0E0),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "${product.rating}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "Published Date",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "(${product.reviewCount} reviews)",
+                text = "Published on ${advert.publishedAt.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' HH:mm"))}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Price
-        Text(
-            text = "$${product.price}",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Stock Status
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Availability: ",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Surface(
-                color = if (product.inStock) Color(0xFF4CAF50).copy(alpha = 0.1f) 
-                       else MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = if (product.inStock) "In Stock" else "Out of Stock",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (product.inStock) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Medium
-                )
-            }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -223,25 +182,43 @@ private fun ProductDetailContent(
         Spacer(modifier = Modifier.height(12.dp))
         
         Text(
-            text = product.description,
+            text = advert.description,
             style = MaterialTheme.typography.bodyLarge,
             lineHeight = 24.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Add to Cart Button
+        // Category Description
+        if (advert.category.description.isNotBlank()) {
+            Text(
+                text = "Category",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = advert.category.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+        
+        // Contact Button
         Button(
-            onClick = onAddToCart,
+            onClick = onContact,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            enabled = product.inStock,
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                text = if (product.inStock) "Add to Cart" else "Out of Stock",
+                text = "Contact Advertiser",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
