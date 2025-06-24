@@ -1,7 +1,63 @@
-package com.example.boltnew.data
+package com.example.boltnew.data.repository
 
-object ProductRepository {
-    fun getProducts(): List<Product> {
+import com.example.boltnew.data.Product
+import com.example.boltnew.data.database.ProductDao
+import com.example.boltnew.data.mapper.toDomain
+import com.example.boltnew.data.mapper.toEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class ProductRepositoryImpl(
+    private val productDao: ProductDao
+) : ProductRepository {
+    
+    override fun getAllProducts(): Flow<List<Product>> {
+        return productDao.getAllProducts().map { entities ->
+            entities.toDomain()
+        }
+    }
+    
+    override suspend fun getProductById(id: Int): Product? {
+        return productDao.getProductById(id)?.toDomain()
+    }
+    
+    override fun getProductsByCategory(category: String): Flow<List<Product>> {
+        return productDao.getProductsByCategory(category).map { entities ->
+            entities.toDomain()
+        }
+    }
+    
+    override fun getInStockProducts(): Flow<List<Product>> {
+        return productDao.getInStockProducts().map { entities ->
+            entities.toDomain()
+        }
+    }
+    
+    override suspend fun insertProduct(product: Product) {
+        productDao.insertProduct(product.toEntity())
+    }
+    
+    override suspend fun insertProducts(products: List<Product>) {
+        productDao.insertProducts(products.toEntity())
+    }
+    
+    override suspend fun updateProduct(product: Product) {
+        productDao.updateProduct(product.toEntity())
+    }
+    
+    override suspend fun deleteProduct(product: Product) {
+        productDao.deleteProduct(product.toEntity())
+    }
+    
+    override suspend fun initializeData() {
+        val count = productDao.getProductCount()
+        if (count == 0) {
+            val sampleProducts = getSampleProducts()
+            insertProducts(sampleProducts)
+        }
+    }
+    
+    private fun getSampleProducts(): List<Product> {
         return listOf(
             Product(
                 id = 1,
@@ -84,9 +140,5 @@ object ProductRepository {
                 reviewCount = 1456
             )
         )
-    }
-    
-    fun getProductById(id: Int): Product? {
-        return getProducts().find { it.id == id }
     }
 }

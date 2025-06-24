@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,35 +19,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.Product
-import com.example.boltnew.data.ProductRepository
+import com.example.boltnew.presentation.viewmodel.ProductDetailViewModel
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     productId: Int,
     onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ProductDetailViewModel = koinViewModel()
 ) {
-    val product = ProductRepository.getProductById(productId)
+    val uiState by viewModel.uiState.collectAsState()
     
-    if (product == null) {
-        // Handle product not found
-        Column(
-            modifier = modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Product not found",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onBackClick) {
-                Text("Go Back")
-            }
-        }
-        return
+    LaunchedEffect(productId) {
+        viewModel.loadProduct(productId)
     }
     
     Column(
@@ -70,17 +56,53 @@ fun ProductDetailScreen(
             )
         )
         
-        // Product Details Content
-        ProductDetailContent(
-            product = product,
-            modifier = Modifier.fillMaxSize()
-        )
+        // Content
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = uiState.error,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onBackClick) {
+                            Text("Go Back")
+                        }
+                    }
+                }
+            }
+            
+            uiState.product != null -> {
+                ProductDetailContent(
+                    product = uiState.product,
+                    onAddToCart = { viewModel.addToCart() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun ProductDetailContent(
-    product: Product,
+    product: com.example.boltnew.data.Product,
+    onAddToCart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -210,7 +232,7 @@ private fun ProductDetailContent(
         
         // Add to Cart Button
         Button(
-            onClick = { /* Handle add to cart */ },
+            onClick = onAddToCart,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
