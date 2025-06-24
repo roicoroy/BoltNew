@@ -1,6 +1,5 @@
 package com.example.boltnew.data.repository
 
-import com.example.boltnew.data.model.User
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {

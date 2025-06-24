@@ -3,7 +3,6 @@ package com.example.boltnew.data.mapper
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.UserEntity
-import com.example.boltnew.data.model.User
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

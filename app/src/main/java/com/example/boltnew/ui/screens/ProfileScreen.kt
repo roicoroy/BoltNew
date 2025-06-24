@@ -202,19 +202,19 @@ private fun ProfileContent(
                     avatarUrl = profile.avatar?.url,
                     onClick = onAvatarClick
                 )
-                
+
                 Text(
                     text = profile.displayName,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Text(
                     text = profile.email,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 if (profile.role != null) {
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -270,7 +270,7 @@ private fun ProfileContent(
         
         // Add some bottom padding for better scrolling experience
         item {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(52.dp))
         }
     }
 }

@@ -3,7 +3,6 @@ package com.example.boltnew.data.repository
 import com.example.boltnew.data.database.UserDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity
-import com.example.boltnew.data.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
