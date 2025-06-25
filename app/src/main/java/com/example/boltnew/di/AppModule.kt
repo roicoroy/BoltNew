@@ -3,6 +3,8 @@ package com.example.boltnew.di
 import com.example.boltnew.data.database.provideDatabase
 import com.example.boltnew.data.repository.AdvertRepository
 import com.example.boltnew.data.repository.AdvertRepositoryImpl
+import com.example.boltnew.data.repository.ProfileRepository
+import com.example.boltnew.data.repository.ProfileRepositoryImpl
 import com.example.boltnew.presentation.viewmodel.HomeViewModel
 import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
