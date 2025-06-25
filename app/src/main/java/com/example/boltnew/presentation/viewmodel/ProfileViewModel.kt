@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.ProfileRepository
-import com.example.boltnew.utils.ImageUtils
+import com.example.boltnew.data.repository.ProfileRepositoryImpl
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -96,21 +96,66 @@ class ProfileViewModel(
             try {
                 _uiState.value = _uiState.value.copy(isUpdatingAvatar = true)
                 
-                val savedPath = ImageUtils.saveImageToInternalStorage(context, imageUri)
-                profileRepository.updateAvatar(savedPath, savedPath)
+                // Get current profile to extract documentId
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isUpdatingAvatar = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
                 
-                _uiState.value = _uiState.value.copy(
-                    isUpdatingAvatar = false,
-                    operationMessage = "Avatar updated successfully"
-                )
+                println("🔄 Updating avatar for profile: ${currentProfile.documentId}")
                 
-                // Reload profile to show updated avatar
-                loadUserProfile()
+                // Use ProfileRepositoryImpl to upload and update avatar
+                if (profileRepository is ProfileRepositoryImpl) {
+                    val result = profileRepository.uploadAndUpdateAvatar(
+                        context = context,
+                        imageUri = imageUri,
+                        profileDocumentId = currentProfile.documentId
+                    )
+                    
+                    if (result.isSuccess) {
+                        val newAvatarUrl = result.getOrThrow()
+                        _uiState.value = _uiState.value.copy(
+                            isUpdatingAvatar = false,
+                            operationMessage = "Avatar updated successfully!"
+                        )
+                        
+                        println("✅ Avatar updated successfully: $newAvatarUrl")
+                        
+                        // Reload profile to show updated avatar
+                        loadUserProfile()
+                    } else {
+                        val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                        _uiState.value = _uiState.value.copy(
+                            isUpdatingAvatar = false,
+                            operationMessage = "Failed to update avatar: $error"
+                        )
+                        println("❌ Avatar update failed: $error")
+                    }
+                } else {
+                    // Fallback to old method if not using ProfileRepositoryImpl
+                    val savedPath = com.example.boltnew.utils.ImageUtils.saveImageToInternalStorage(context, imageUri)
+                    profileRepository.updateAvatar(savedPath, savedPath)
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isUpdatingAvatar = false,
+                        operationMessage = "Avatar updated locally"
+                    )
+                    
+                    // Reload profile to show updated avatar
+                    loadUserProfile()
+                }
+                
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isUpdatingAvatar = false,
                     operationMessage = "Failed to update avatar: ${e.message}"
                 )
+                println("💥 Avatar update error: ${e.message}")
+                e.printStackTrace()
             }
         }
     }
