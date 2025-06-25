@@ -4,10 +4,37 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.boltnew.data.model.*
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
-private val dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+private val isoDateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+@RequiresApi(Build.VERSION_CODES.O)
+private val zonedDateTimeFormatter = DateTimeFormatter.ISO_ZONED_DATE_TIME
+@RequiresApi(Build.VERSION_CODES.O)
+private val instantFormatter = DateTimeFormatter.ISO_INSTANT
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun parseDateTime(dateString: String): LocalDateTime {
+    return try {
+        // Try parsing as ISO instant (with Z timezone)
+        val instant = java.time.Instant.parse(dateString)
+        LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC)
+    } catch (e: Exception) {
+        try {
+            // Try parsing as zoned date time
+            ZonedDateTime.parse(dateString, zonedDateTimeFormatter).toLocalDateTime()
+        } catch (e2: Exception) {
+            try {
+                // Try parsing as local date time
+                LocalDateTime.parse(dateString, isoDateTimeFormatter)
+            } catch (e3: Exception) {
+                // Fallback to current time if all parsing fails
+                LocalDateTime.now()
+            }
+        }
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun StrapiAdvert.toDomain(): Advert {
@@ -17,9 +44,9 @@ fun StrapiAdvert.toDomain(): Advert {
         title = title,
         description = description,
         slug = slug,
-        createdAt = LocalDateTime.parse(createdAt, dateTimeFormatter),
-        updatedAt = LocalDateTime.parse(updatedAt, dateTimeFormatter),
-        publishedAt = LocalDateTime.parse(publishedAt, dateTimeFormatter),
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt),
         cover = cover?.toDomain(),
         category = category.toDomain()
     )
@@ -67,9 +94,9 @@ fun StrapiCategory.toDomain(): AdvertCategory {
         name = name,
         slug = slug,
         description = description,
-        createdAt = LocalDateTime.parse(createdAt, dateTimeFormatter),
-        updatedAt = LocalDateTime.parse(updatedAt, dateTimeFormatter),
-        publishedAt = LocalDateTime.parse(publishedAt, dateTimeFormatter)
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt)
     )
 }
 

@@ -5,22 +5,66 @@ import androidx.annotation.RequiresApi
 import com.example.boltnew.data.model.*
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 @RequiresApi(Build.VERSION_CODES.O)
-private val dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+private val isoDateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+@RequiresApi(Build.VERSION_CODES.O)
+private val zonedDateTimeFormatter = DateTimeFormatter.ISO_ZONED_DATE_TIME
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun parseDateTime(dateString: String): String {
+    return try {
+        // Try parsing as ISO instant (with Z timezone) and convert to local string
+        val instant = java.time.Instant.parse(dateString)
+        LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC).toString()
+    } catch (e: Exception) {
+        try {
+            // Try parsing as zoned date time
+            ZonedDateTime.parse(dateString, zonedDateTimeFormatter).toLocalDateTime().toString()
+        } catch (e2: Exception) {
+            try {
+                // Try parsing as local date time
+                LocalDateTime.parse(dateString, isoDateTimeFormatter).toString()
+            } catch (e3: Exception) {
+                // Return original string if all parsing fails
+                dateString
+            }
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+private fun parseDate(dateString: String): String {
+    return try {
+        if (dateString.isBlank()) return ""
+        
+        // Try parsing as ISO instant first
+        val instant = java.time.Instant.parse(dateString)
+        LocalDate.ofInstant(instant, java.time.ZoneOffset.UTC).toString()
+    } catch (e: Exception) {
+        try {
+            // Try parsing as date only
+            LocalDate.parse(dateString, dateFormatter).toString()
+        } catch (e2: Exception) {
+            // Return original string if parsing fails
+            dateString
+        }
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun StrapiProfile.toDomain(): Profile {
     return Profile(
         id = data.id,
         documentId = data.documentId,
-        dateOfBirth = data.dob,
-        createdAt = data.createdAt,
-        updatedAt = data.updatedAt,
-        publishedAt = data.publishedAt,
+        dateOfBirth = parseDate(data.dob),
+        createdAt = parseDateTime(data.createdAt),
+        updatedAt = parseDateTime(data.updatedAt),
+        publishedAt = parseDateTime(data.publishedAt),
         user = ProfileUser(
             id = data.user.id,
             documentId = data.user.documentId,
@@ -29,9 +73,9 @@ fun StrapiProfile.toDomain(): Profile {
             blocked = data.user.blocked,
             confirmed = data.user.confirmed,
             provider = data.user.provider,
-            createdAt = data.user.createdAt,
-            updatedAt = data.user.updatedAt,
-            publishedAt = data.user.publishedAt
+            createdAt = parseDateTime(data.user.createdAt),
+            updatedAt = parseDateTime(data.user.updatedAt),
+            publishedAt = parseDateTime(data.user.publishedAt)
         ),
         addresses = data.addresses.map { it.toDomain() },
         avatar = if (data.avatar.url.isNotBlank()) {
@@ -54,9 +98,9 @@ fun StrapiProfile.Data.Addresse.toDomain(): Address {
         postCode = postCode,
         country = country,
         phoneNumber = phoneNumber,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        publishedAt = publishedAt
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt)
     )
 }
 
@@ -76,9 +120,9 @@ fun StrapiProfile.Data.Avatar.toDomain(): Avatar {
         mime = mime,
         hash = hash,
         provider = provider,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        publishedAt = publishedAt,
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt),
         formats = formats.toDomain()
     )
 }
@@ -149,9 +193,9 @@ fun StrapiProfile.Data.Advert.toDomain(): UserAdvert {
         title = title,
         description = description,
         slug = slug,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        publishedAt = publishedAt
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt)
     )
 }
 
@@ -165,16 +209,16 @@ fun StrapiUser.toDomain(): User {
         blocked = blocked,
         confirmed = confirmed,
         provider = provider,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        publishedAt = publishedAt,
+        createdAt = parseDateTime(createdAt),
+        updatedAt = parseDateTime(updatedAt),
+        publishedAt = parseDateTime(publishedAt),
         profile = UserProfile(
             id = profile.id,
             documentId = profile.documentId,
-            dateOfBirth = profile.dob,
-            createdAt = profile.createdAt,
-            updatedAt = profile.updatedAt,
-            publishedAt = profile.publishedAt
+            dateOfBirth = parseDate(profile.dob),
+            createdAt = parseDateTime(profile.createdAt),
+            updatedAt = parseDateTime(profile.updatedAt),
+            publishedAt = parseDateTime(profile.publishedAt)
         ),
         role = UserRole(
             id = role.id,
@@ -182,9 +226,9 @@ fun StrapiUser.toDomain(): User {
             name = role.name,
             description = role.description,
             type = role.type,
-            createdAt = role.createdAt,
-            updatedAt = role.updatedAt,
-            publishedAt = role.publishedAt
+            createdAt = parseDateTime(role.createdAt),
+            updatedAt = parseDateTime(role.updatedAt),
+            publishedAt = parseDateTime(role.publishedAt)
         )
     )
 }
