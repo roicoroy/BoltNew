@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -23,7 +27,7 @@ import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreen(
     onAdvertClick: (Int) -> Unit,
@@ -33,27 +37,14 @@ fun HomeScreen(
     val advertsState by viewModel.advertsState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
     // Pull-to-refresh state
-    val pullToRefreshState = rememberPullToRefreshState()
-    var isRefreshing by remember { mutableStateOf(false) }
-    
-    // Handle pull-to-refresh
-    LaunchedEffect(pullToRefreshState.isRefreshing) {
-        if (pullToRefreshState.isRefreshing) {
-            isRefreshing = true
-            viewModel.refreshAdverts()
-        }
-    }
-    
-    // Stop refreshing when data is loaded
-    LaunchedEffect(advertsState) {
-        if (advertsState !is RequestState.Loading && isRefreshing) {
-            isRefreshing = false
-            pullToRefreshState.endRefresh()
-        }
-    }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = { viewModel.refreshAdverts() }
+    )
     
     Column(
         modifier = modifier.fillMaxSize()
@@ -147,40 +138,65 @@ fun HomeScreen(
         
         // Pull-to-refresh container with adverts content
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pullRefresh(pullRefreshState)
         ) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { 
-                    viewModel.refreshAdverts()
-                },
-                state = pullToRefreshState,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Adverts Content
-                advertsState.DisplayResult(
-                    modifier = Modifier.fillMaxSize(),
-                    onLoading = {
-                        if (!isRefreshing) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+            // Adverts Content
+            advertsState.DisplayResult(
+                modifier = Modifier.fillMaxSize(),
+                onLoading = {
+                    if (!isRefreshing) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    CircularProgressIndicator()
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = "Loading adverts...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Loading adverts...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                },
+                onError = { errorMessage ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(onClick = { viewModel.refreshAdverts() }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Retry")
                                 }
                             }
                         }
-                    },
-                    onError = { errorMessage ->
+                    }
+                },
+                onSuccess = { adverts ->
+                    if (adverts.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -189,99 +205,76 @@ fun HomeScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = errorMessage,
+                                    text = if (searchQuery.isNotBlank()) {
+                                        "No adverts found for \"$searchQuery\""
+                                    } else if (uiState.selectedCategory != null) {
+                                        "No adverts found in \"${uiState.selectedCategory}\" category"
+                                    } else {
+                                        "No adverts available"
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.error
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Button(onClick = { viewModel.refreshAdverts() }) {
+                                
+                                if (searchQuery.isNotBlank() || uiState.selectedCategory != null) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            searchQuery = ""
+                                            viewModel.clearSearchQuery()
+                                            viewModel.clearSelectedCategory()
+                                            viewModel.refreshAdverts()
+                                        }
+                                    ) {
+                                        Text("Show All Adverts")
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { viewModel.refreshAdverts() }
+                                    ) {
                                         Icon(
                                             imageVector = Icons.Default.Refresh,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Retry")
+                                        Text("Refresh")
                                     }
                                 }
                             }
                         }
-                    },
-                    onSuccess = { adverts ->
-                        if (adverts.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = if (searchQuery.isNotBlank()) {
-                                            "No adverts found for \"$searchQuery\""
-                                        } else if (uiState.selectedCategory != null) {
-                                            "No adverts found in \"${uiState.selectedCategory}\" category"
-                                        } else {
-                                            "No adverts available"
-                                        },
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    
-                                    if (searchQuery.isNotBlank() || uiState.selectedCategory != null) {
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        OutlinedButton(
-                                            onClick = {
-                                                searchQuery = ""
-                                                viewModel.clearSearchQuery()
-                                                viewModel.clearSelectedCategory()
-                                                viewModel.refreshAdverts()
-                                            }
-                                        ) {
-                                            Text("Show All Adverts")
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        Button(
-                                            onClick = { viewModel.refreshAdverts() }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Refresh,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Refresh")
-                                        }
-                                    }
-                                }
+                    } else {
+                        // Advert List
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(adverts) { advert ->
+                                AdvertCard(
+                                    advert = advert,
+                                    onClick = { onAdvertClick(advert.id) }
+                                )
                             }
-                        } else {
-                            // Advert List
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(adverts) { advert ->
-                                    AdvertCard(
-                                        advert = advert,
-                                        onClick = { onAdvertClick(advert.id) }
-                                    )
-                                }
-                                
-                                // Add extra space at the bottom for better UX
-                                item {
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
+                            
+                            // Add extra space at the bottom for better UX
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }
-                )
-            }
+                }
+            )
+            
+            // Pull refresh indicator
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

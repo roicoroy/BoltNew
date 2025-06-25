@@ -75,6 +75,9 @@ dependencies {
     // Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
     
+    // Pull to refresh
+    implementation("androidx.compose.material:material:1.5.8")
+    
     // Ktor HTTP Client
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
