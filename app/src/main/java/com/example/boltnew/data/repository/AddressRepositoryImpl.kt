@@ -2,9 +2,9 @@ package com.example.boltnew.data.repository
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.network.AddressApiService
+import com.example.boltnew.data.network.AuthApiService
 import com.example.boltnew.data.network.StrapiAddressCreateData
 import com.example.boltnew.data.network.StrapiAddressCreateRequest
 import com.example.boltnew.data.network.StrapiAddressUpdateData
@@ -14,6 +14,7 @@ import com.example.boltnew.data.network.TokenManager
 @RequiresApi(Build.VERSION_CODES.O)
 class AddressRepositoryImpl(
     private val addressApiService: AddressApiService,
+    private val authApiService: AuthApiService,
     private val tokenManager: TokenManager
 ) : AddressRepository {
     
@@ -47,15 +48,33 @@ class AddressRepositoryImpl(
             val createdAddress = createResult.getOrThrow()
             println("✅ Address created with ID: ${createdAddress.data.id}")
             
-            // Step 2: Link address to profile
+            // Step 2: Query the Profile of the logged user to get existing addresses
+            println("🔍 Querying current profile to get existing addresses...")
+            val profileResult = authApiService.getUserProfile(token)
+            
+            if (profileResult.isFailure) {
+                println("⚠️ Address created but failed to query profile for linking")
+                return Result.failure(Exception("Address created but failed to link to profile: ${profileResult.exceptionOrNull()?.message}"))
+            }
+            
+            val currentProfile = profileResult.getOrThrow()
+            println("📋 Current profile has ${currentProfile.data.addresses.size} existing addresses")
+            
+            // Step 3: Get existing address IDs and add the new one
+            val existingAddressIds = currentProfile.data.addresses.map { it.id.toString() }
+            val updatedAddressIds = existingAddressIds + createdAddress.data.id.toString()
+            
+            println("🔗 Updating profile with address IDs: ${updatedAddressIds.joinToString()}")
+            
+            // Step 4: Link address to profile with the complete list
             val linkResult = addressApiService.updateProfileAddresses(
                 profileDocumentId = profileDocumentId,
-                addressIds = listOf(createdAddress.data.id.toString()),
+                addressIds = updatedAddressIds,
                 token = token
             )
             
             if (linkResult.isFailure) {
-                println("⚠️ Address created but linking to profile failed")
+                println("⚠️ Address created but linking to profile failed: ${linkResult.exceptionOrNull()?.message}")
                 // Still return success since address was created
             } else {
                 println("🔗 Address linked to profile successfully")
@@ -149,13 +168,54 @@ class AddressRepositoryImpl(
             
             println("🗑️ Deleting address: $addressDocumentId")
             
+            // Step 1: Query the Profile to get current addresses
+            println("🔍 Querying current profile to get existing addresses...")
+            val profileResult = authApiService.getUserProfile(token)
+            
+            if (profileResult.isFailure) {
+                println("⚠️ Failed to query profile for address deletion")
+                return Result.failure(Exception("Failed to query profile: ${profileResult.exceptionOrNull()?.message}"))
+            }
+            
+            val currentProfile = profileResult.getOrThrow()
+            println("📋 Current profile has ${currentProfile.data.addresses.size} existing addresses")
+            
+            // Step 2: Find the address to delete and get its ID
+            val addressToDelete = currentProfile.data.addresses.find { it.documentId == addressDocumentId }
+            if (addressToDelete == null) {
+                println("⚠️ Address not found in profile")
+                return Result.failure(Exception("Address not found in profile"))
+            }
+            
+            // Step 3: Delete the address
             val deleteResult = addressApiService.deleteAddress(addressDocumentId, token)
             
             if (deleteResult.isFailure) {
                 return Result.failure(deleteResult.exceptionOrNull() ?: Exception("Address deletion failed"))
             }
             
-            println("✅ Address deleted successfully")
+            println("✅ Address deleted from Strapi successfully")
+            
+            // Step 4: Update profile to remove the deleted address from the list
+            val remainingAddressIds = currentProfile.data.addresses
+                .filter { it.documentId != addressDocumentId }
+                .map { it.id.toString() }
+            
+            println("🔗 Updating profile with remaining address IDs: ${remainingAddressIds.joinToString()}")
+            
+            val updateProfileResult = addressApiService.updateProfileAddresses(
+                profileDocumentId = profileDocumentId,
+                addressIds = remainingAddressIds,
+                token = token
+            )
+            
+            if (updateProfileResult.isFailure) {
+                println("⚠️ Address deleted but failed to update profile: ${updateProfileResult.exceptionOrNull()?.message}")
+                // Still return success since address was deleted
+            } else {
+                println("🔗 Profile updated successfully after address deletion")
+            }
+            
             Result.success(true)
             
         } catch (e: Exception) {

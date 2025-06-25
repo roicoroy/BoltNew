@@ -47,7 +47,7 @@ val appModule = module {
     single<AdvertRepository> { AdvertRepositoryImpl(get(), get()) }
     single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
-    single<AddressRepository> { AddressRepositoryImpl(get(), get()) }
+    single<AddressRepository> { AddressRepositoryImpl(get(), get(), get()) }
     
     // ViewModels
     viewModel { AdvertViewModel(get(), get()) }
