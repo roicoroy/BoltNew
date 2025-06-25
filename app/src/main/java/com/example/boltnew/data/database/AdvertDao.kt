@@ -38,4 +38,43 @@ interface AdvertDao {
     
     @Query("SELECT COUNT(*) FROM adverts")
     suspend fun getAdvertCount(): Int
+    
+    // Additional methods for API integration
+    @Query("SELECT * FROM adverts WHERE documentId = :documentId")
+    suspend fun getAdvertByDocumentId(documentId: String): AdvertEntity?
+    
+    @Query("UPDATE adverts SET title = :title, description = :description, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateAdvertContent(id: Int, title: String, description: String, updatedAt: String)
+    
+    @Query("SELECT MAX(id) FROM adverts")
+    suspend fun getMaxAdvertId(): Int?
+    
+    // Batch operations for better performance
+    @Transaction
+    suspend fun replaceAllAdverts(adverts: List<AdvertEntity>) {
+        deleteAllAdverts()
+        insertAdverts(adverts)
+    }
+    
+    @Transaction
+    suspend fun syncAdvertsFromApi(apiAdverts: List<AdvertEntity>) {
+        // Get existing local adverts
+        val existingIds = getAllAdvertIds()
+        val apiIds = apiAdverts.map { it.id }
+        
+        // Delete adverts that no longer exist in API
+        val toDelete = existingIds.filter { it !in apiIds }
+        toDelete.forEach { id ->
+            deleteAdvertById(id)
+        }
+        
+        // Insert or update adverts from API
+        insertAdverts(apiAdverts)
+    }
+    
+    @Query("SELECT id FROM adverts")
+    suspend fun getAllAdvertIds(): List<Int>
+    
+    @Query("DELETE FROM adverts WHERE id = :id")
+    suspend fun deleteAdvertById(id: Int)
 }

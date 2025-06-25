@@ -79,7 +79,7 @@ class HomeViewModel(
                     _categoriesState.value = RequestState.Loading 
                 }
                 .catch { exception ->
-                    _categoriesState.value = RequestState.Error("Failed to load categories: ${exception.message}")
+                    _categoriesState.value = RequestState.Error("Failed to load categories from API: ${exception.message}")
                 }
                 .collect { categories ->
                     _categoriesState.value = RequestState.Success(categories)
@@ -104,7 +104,7 @@ class HomeViewModel(
                             _advertsState.value = RequestState.Loading 
                         }
                         .catch { exception ->
-                            _advertsState.value = RequestState.Error("Failed to filter adverts: ${exception.message}")
+                            _advertsState.value = RequestState.Error("Failed to filter adverts from API: ${exception.message}")
                         }
                         .collect { adverts ->
                             _advertsState.value = RequestState.Success(adverts)
@@ -131,7 +131,7 @@ class HomeViewModel(
                             _advertsState.value = RequestState.Loading 
                         }
                         .catch { exception ->
-                            _advertsState.value = RequestState.Error("Failed to search adverts: ${exception.message}")
+                            _advertsState.value = RequestState.Error("Failed to search adverts from API: ${exception.message}")
                         }
                         .collect { adverts ->
                             _advertsState.value = RequestState.Success(adverts)

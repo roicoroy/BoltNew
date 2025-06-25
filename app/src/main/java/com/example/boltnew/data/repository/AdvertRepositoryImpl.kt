@@ -10,6 +10,7 @@ import com.example.boltnew.data.mapper.toStrapiCreateRequest
 import com.example.boltnew.data.mapper.toStrapiUpdateRequest
 import com.example.boltnew.data.network.AdvertApiService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import java.time.LocalDateTime
@@ -21,8 +22,34 @@ class AdvertRepositoryImpl(
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getAllAdverts(): Flow<List<Advert>> {
-        return advertDao.getAllAdverts()
-            .map { entities -> entities.toDomain() }
+        return flow {
+            try {
+                // Try to fetch from API first
+                val apiResult = apiService.getAllAdverts()
+                if (apiResult.isSuccess) {
+                    val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
+                    val domainAdverts = strapiAdverts.toDomain()
+                    
+                    // Update local cache
+                    advertDao.deleteAllAdverts()
+                    advertDao.insertAdverts(domainAdverts.toEntity())
+                    
+                    emit(domainAdverts)
+                } else {
+                    // If API fails, fall back to local data
+                    val localAdverts = advertDao.getAllAdverts()
+                    localAdverts.collect { entities ->
+                        emit(entities.toDomain())
+                    }
+                }
+            } catch (e: Exception) {
+                // If API fails, fall back to local data
+                val localAdverts = advertDao.getAllAdverts()
+                localAdverts.collect { entities ->
+                    emit(entities.toDomain())
+                }
+            }
+        }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
@@ -49,18 +76,81 @@ class AdvertRepositoryImpl(
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getAdvertsByCategory(categorySlug: String): Flow<List<Advert>> {
-        return advertDao.getAdvertsByCategory(categorySlug)
-            .map { entities -> entities.toDomain() }
+        return flow {
+            try {
+                // Try to fetch from API first
+                val apiResult = apiService.getAdvertsByCategory(categorySlug)
+                if (apiResult.isSuccess) {
+                    val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
+                    val domainAdverts = strapiAdverts.toDomain()
+                    emit(domainAdverts)
+                } else {
+                    // If API fails, fall back to local data
+                    val localAdverts = advertDao.getAdvertsByCategory(categorySlug)
+                    localAdverts.collect { entities ->
+                        emit(entities.toDomain())
+                    }
+                }
+            } catch (e: Exception) {
+                // If API fails, fall back to local data
+                val localAdverts = advertDao.getAdvertsByCategory(categorySlug)
+                localAdverts.collect { entities ->
+                    emit(entities.toDomain())
+                }
+            }
+        }
     }
     
     override fun getAllCategories(): Flow<List<String>> {
-        return advertDao.getAllCategories()
+        return flow {
+            try {
+                // Try to fetch from API first
+                val apiResult = apiService.getCategories()
+                if (apiResult.isSuccess) {
+                    val categories = apiResult.getOrNull() ?: emptyList()
+                    emit(categories)
+                } else {
+                    // If API fails, fall back to local data
+                    val localCategories = advertDao.getAllCategories()
+                    localCategories.collect { categories ->
+                        emit(categories)
+                    }
+                }
+            } catch (e: Exception) {
+                // If API fails, fall back to local data
+                val localCategories = advertDao.getAllCategories()
+                localCategories.collect { categories ->
+                    emit(categories)
+                }
+            }
+        }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun searchAdverts(query: String): Flow<List<Advert>> {
-        return advertDao.searchAdverts(query)
-            .map { entities -> entities.toDomain() }
+        return flow {
+            try {
+                // Try to search via API first
+                val apiResult = apiService.searchAdverts(query)
+                if (apiResult.isSuccess) {
+                    val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
+                    val domainAdverts = strapiAdverts.toDomain()
+                    emit(domainAdverts)
+                } else {
+                    // If API fails, fall back to local search
+                    val localAdverts = advertDao.searchAdverts(query)
+                    localAdverts.collect { entities ->
+                        emit(entities.toDomain())
+                    }
+                }
+            } catch (e: Exception) {
+                // If API fails, fall back to local search
+                val localAdverts = advertDao.searchAdverts(query)
+                localAdverts.collect { entities ->
+                    emit(entities.toDomain())
+                }
+            }
+        }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)

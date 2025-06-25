@@ -15,6 +15,7 @@ class AdvertApiService {
             val response = client.get("$baseUrl/adverts") {
                 parameter("populate", "*")
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -27,6 +28,7 @@ class AdvertApiService {
             val response = client.get("$baseUrl/adverts/$id") {
                 parameter("populate", "*")
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertSingleResponse>())
         } catch (e: Exception) {
@@ -40,6 +42,7 @@ class AdvertApiService {
                 parameter("populate", "*")
                 parameter("filters[category][slug][\$eq]", categorySlug)
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -54,6 +57,7 @@ class AdvertApiService {
                 parameter("filters[\$or][0][title][\$containsi]", query)
                 parameter("filters[\$or][1][description][\$containsi]", query)
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -65,6 +69,7 @@ class AdvertApiService {
         return try {
             val response = client.post("$baseUrl/adverts") {
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
                 setBody(request)
             }
             Result.success(response.body<StrapiAdvertSingleResponse>())
@@ -77,6 +82,7 @@ class AdvertApiService {
         return try {
             val response = client.put("$baseUrl/adverts/$id") {
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
                 setBody(request)
             }
             Result.success(response.body<StrapiAdvertSingleResponse>())
@@ -89,6 +95,7 @@ class AdvertApiService {
         return try {
             val response = client.delete("$baseUrl/adverts/$id") {
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertSingleResponse>())
         } catch (e: Exception) {
@@ -100,10 +107,25 @@ class AdvertApiService {
         return try {
             val response = client.get("$baseUrl/categories") {
                 contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
             }
             val categoriesResponse = response.body<StrapiCategoriesResponse>()
             val categoryNames = categoriesResponse.data.map { it.name }.distinct()
             Result.success(categoryNames)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Health check method to test API connectivity
+    suspend fun healthCheck(): Result<Boolean> {
+        return try {
+            val response = client.get("$baseUrl/adverts") {
+                parameter("pagination[limit]", "1")
+                contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
+            }
+            Result.success(response.status.isSuccess())
         } catch (e: Exception) {
             Result.failure(e)
         }
