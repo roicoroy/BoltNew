@@ -166,10 +166,56 @@ class AdvertRepositoryImpl(
             val apiResult = apiService.createAdvert(createRequest, token.toString())
 
             if (apiResult.isSuccess) {
-                val createdAdvert = apiResult.getOrNull()?.data?.toDomain()
+                val createdAdvert = apiResult.getOrNull()?.data
                 createdAdvert?.let {
+                    // Convert AdvertCreateData to domain model
+                    val domainAdvert = Advert(
+                        id = it.id,
+                        documentId = it.documentId,
+                        title = it.title,
+                        description = it.description,
+                        slug = it.slug,
+                        createdAt = LocalDateTime.parse(it.createdAt.replace("Z", "")),
+                        updatedAt = LocalDateTime.parse(it.updatedAt.replace("Z", "")),
+                        publishedAt = LocalDateTime.parse(it.publishedAt.replace("Z", "")),
+                        cover = it.cover?.let { cover ->
+                            AdvertCover(
+                                id = cover.id,
+                                documentId = cover.documentId,
+                                name = cover.name,
+                                alternativeText = cover.alternativeText,
+                                caption = cover.caption,
+                                width = cover.width,
+                                height = cover.height,
+                                url = cover.url,
+                                formats = null // Simplified for now
+                            )
+                        },
+                        category = it.category?.let { category ->
+                            AdvertCategory(
+                                id = category.id,
+                                documentId = category.documentId,
+                                name = category.name,
+                                slug = category.slug,
+                                description = category.description,
+                                createdAt = LocalDateTime.now(),
+                                updatedAt = LocalDateTime.now(),
+                                publishedAt = LocalDateTime.now()
+                            )
+                        } ?: AdvertCategory(
+                            id = 0,
+                            documentId = "",
+                            name = "Unknown",
+                            slug = "unknown",
+                            description = "",
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now(),
+                            publishedAt = LocalDateTime.now()
+                        )
+                    )
+                    
                     // Cache in local database
-                    advertDao.insertAdvert(it.toEntity())
+                    advertDao.insertAdvert(domainAdvert.toEntity())
                 }
             } else {
                 // If API fails, still save locally
@@ -196,10 +242,56 @@ class AdvertRepositoryImpl(
             val apiResult = apiService.updateAdvert(advert.id, updateRequest, token.toString())
 
             if (apiResult.isSuccess) {
-                val updatedAdvert = apiResult.getOrNull()?.data?.toDomain()
+                val updatedAdvert = apiResult.getOrNull()?.data
                 updatedAdvert?.let {
+                    // Convert AdvertCreateData to domain model
+                    val domainAdvert = Advert(
+                        id = it.id,
+                        documentId = it.documentId,
+                        title = it.title,
+                        description = it.description,
+                        slug = it.slug,
+                        createdAt = LocalDateTime.parse(it.createdAt.replace("Z", "")),
+                        updatedAt = LocalDateTime.parse(it.updatedAt.replace("Z", "")),
+                        publishedAt = LocalDateTime.parse(it.publishedAt.replace("Z", "")),
+                        cover = it.cover?.let { cover ->
+                            AdvertCover(
+                                id = cover.id,
+                                documentId = cover.documentId,
+                                name = cover.name,
+                                alternativeText = cover.alternativeText,
+                                caption = cover.caption,
+                                width = cover.width,
+                                height = cover.height,
+                                url = cover.url,
+                                formats = null // Simplified for now
+                            )
+                        },
+                        category = it.category?.let { category ->
+                            AdvertCategory(
+                                id = category.id,
+                                documentId = category.documentId,
+                                name = category.name,
+                                slug = category.slug,
+                                description = category.description,
+                                createdAt = LocalDateTime.now(),
+                                updatedAt = LocalDateTime.now(),
+                                publishedAt = LocalDateTime.now()
+                            )
+                        } ?: AdvertCategory(
+                            id = 0,
+                            documentId = "",
+                            name = "Unknown",
+                            slug = "unknown",
+                            description = "",
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now(),
+                            publishedAt = LocalDateTime.now()
+                        )
+                    )
+                    
                     // Update local database
-                    advertDao.updateAdvert(it.toEntity())
+                    advertDao.updateAdvert(domainAdvert.toEntity())
                 }
             } else {
                 // If API fails, still update locally

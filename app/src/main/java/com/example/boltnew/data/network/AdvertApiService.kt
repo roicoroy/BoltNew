@@ -1,5 +1,6 @@
 package com.example.boltnew.data.network
 
+import com.example.boltnew.data.model.advert.AdvertCreateResponse
 import com.example.boltnew.data.model.advert.StrapiAdvertCreateRequest
 import com.example.boltnew.data.model.advert.StrapiAdvertResponse
 import com.example.boltnew.data.model.advert.StrapiAdvertSingleResponse
@@ -72,7 +73,7 @@ class AdvertApiService {
         }
     }
     
-    suspend fun createAdvert(request: StrapiAdvertCreateRequest, token: String): Result<StrapiAdvertSingleResponse> {
+    suspend fun createAdvert(request: StrapiAdvertCreateRequest, token: String): Result<AdvertCreateResponse> {
         return try {
             println("📝 Creating new advert...")
             
@@ -86,7 +87,7 @@ class AdvertApiService {
             println("📤 Create advert response status: ${response.status}")
             
             if (response.status.isSuccess()) {
-                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                val advertResponse = response.body<AdvertCreateResponse>()
                 println("✅ Advert created successfully: ${advertResponse.data.id}")
                 Result.success(advertResponse)
             } else {
@@ -101,7 +102,7 @@ class AdvertApiService {
         }
     }
     
-    suspend fun updateAdvert(id: Int, request: StrapiAdvertUpdateRequest, token: String): Result<StrapiAdvertSingleResponse> {
+    suspend fun updateAdvert(id: Int, request: StrapiAdvertUpdateRequest, token: String): Result<AdvertCreateResponse> {
         return try {
             println("🔄 Updating advert $id...")
             
@@ -115,7 +116,7 @@ class AdvertApiService {
             println("📤 Update advert response status: ${response.status}")
             
             if (response.status.isSuccess()) {
-                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                val advertResponse = response.body<AdvertCreateResponse>()
                 println("✅ Advert updated successfully: ${advertResponse.data.id}")
                 Result.success(advertResponse)
             } else {
@@ -130,7 +131,7 @@ class AdvertApiService {
         }
     }
     
-    suspend fun deleteAdvert(id: Int, token: String): Result<StrapiAdvertSingleResponse> {
+    suspend fun deleteAdvert(id: Int, token: String): Result<AdvertCreateResponse> {
         return try {
             println("🗑️ Deleting advert $id...")
             
@@ -143,7 +144,7 @@ class AdvertApiService {
             println("📤 Delete advert response status: ${response.status}")
             
             if (response.status.isSuccess()) {
-                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                val advertResponse = response.body<AdvertCreateResponse>()
                 println("✅ Advert deleted successfully")
                 Result.success(advertResponse)
             } else {
