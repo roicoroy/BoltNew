@@ -8,7 +8,6 @@ import com.example.boltnew.data.mapper.toEntity
 import com.example.boltnew.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
 class ProfileRepositoryImpl(
@@ -80,12 +79,27 @@ class ProfileRepositoryImpl(
     }
     
     private fun getDefaultProfile(): Profile {
+        val now = java.time.LocalDateTime.now().toString()
+        
         return Profile(
             id = 1,
             documentId = "default-profile",
-            username = "john_doe",
-            email = "john.doe@example.com",
-            dateOfBirth = LocalDate.of(1990, 1, 1),
+            dateOfBirth = "1990-01-01",
+            createdAt = now,
+            updatedAt = now,
+            publishedAt = now,
+            user = ProfileUser(
+                id = 1,
+                documentId = "default-user",
+                username = "john_doe",
+                email = "john.doe@example.com",
+                blocked = false,
+                confirmed = true,
+                provider = "local",
+                createdAt = now,
+                updatedAt = now,
+                publishedAt = now
+            ),
             addresses = listOf(
                 Address(
                     id = 1,
@@ -97,21 +111,14 @@ class ProfileRepositoryImpl(
                     city = "New York",
                     postCode = "10001",
                     country = "United States",
-                    phoneNumber = "+1 (555) 123-4567"
+                    phoneNumber = "+1 (555) 123-4567",
+                    createdAt = now,
+                    updatedAt = now,
+                    publishedAt = now
                 )
             ),
             avatar = null,
-            userAdverts = emptyList(),
-            role = UserRole(
-                id = 1,
-                documentId = "user-role",
-                name = "User",
-                description = "Standard user role",
-                type = "authenticated"
-            ),
-            isBlocked = false,
-            isConfirmed = true,
-            provider = "local"
+            userAdverts = emptyList()
         )
     }
 }

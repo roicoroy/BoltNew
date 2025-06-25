@@ -4,12 +4,9 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.*
 import com.example.boltnew.data.model.*
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-@RequiresApi(Build.VERSION_CODES.O)
-private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 @RequiresApi(Build.VERSION_CODES.O)
 private val dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
@@ -21,9 +18,22 @@ fun ProfileEntity.toDomain(
     return Profile(
         id = id,
         documentId = documentId,
-        username = username,
-        email = email,
-        dateOfBirth = LocalDate.parse(dateOfBirth, dateFormatter),
+        dateOfBirth = dateOfBirth,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt,
+        user = ProfileUser(
+            id = id, // Using same id for user
+            documentId = documentId,
+            username = username,
+            email = email,
+            blocked = isBlocked,
+            confirmed = isConfirmed,
+            provider = provider,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            publishedAt = publishedAt
+        ),
         addresses = addresses.map { it.toDomain() },
         avatar = if (avatarUrl != null) {
             Avatar(
@@ -36,35 +46,30 @@ fun ProfileEntity.toDomain(
                 width = avatarWidth ?: 0,
                 height = avatarHeight ?: 0,
                 size = avatarSize ?: 0.0,
+                ext = "",
+                mime = "",
+                hash = "",
+                provider = "",
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+                publishedAt = publishedAt,
                 formats = AvatarFormats(
                     thumbnail = avatarThumbnailUrl?.let { 
-                        AvatarFormat("thumbnail", it, 0, 0, 0.0) 
+                        AvatarFormat("thumbnail", it, 0, 0, 0.0, "", "", "", 0) 
                     },
                     small = avatarSmallUrl?.let { 
-                        AvatarFormat("small", it, 0, 0, 0.0) 
+                        AvatarFormat("small", it, 0, 0, 0.0, "", "", "", 0) 
                     },
                     medium = avatarMediumUrl?.let { 
-                        AvatarFormat("medium", it, 0, 0, 0.0) 
+                        AvatarFormat("medium", it, 0, 0, 0.0, "", "", "", 0) 
                     },
                     large = avatarLargeUrl?.let { 
-                        AvatarFormat("large", it, 0, 0, 0.0) 
+                        AvatarFormat("large", it, 0, 0, 0.0, "", "", "", 0) 
                     }
                 )
             )
         } else null,
-        userAdverts = userAdverts.map { it.toDomain() },
-        role = if (roleId != null) {
-            UserRole(
-                id = roleId,
-                documentId = roleDocumentId ?: "",
-                name = roleName ?: "",
-                description = roleDescription ?: "",
-                type = roleType ?: ""
-            )
-        } else null,
-        isBlocked = isBlocked,
-        isConfirmed = isConfirmed,
-        provider = provider
+        userAdverts = userAdverts.map { it.toDomain() }
     )
 }
 
@@ -74,15 +79,15 @@ fun Profile.toEntity(): ProfileEntity {
     return ProfileEntity(
         id = id,
         documentId = documentId,
-        username = username,
-        email = email,
-        dateOfBirth = dateOfBirth.format(dateFormatter),
-        isBlocked = isBlocked,
-        isConfirmed = isConfirmed,
-        provider = provider,
-        createdAt = now,
-        updatedAt = now,
-        publishedAt = now,
+        username = user.username,
+        email = user.email,
+        dateOfBirth = dateOfBirth,
+        isBlocked = user.blocked,
+        isConfirmed = user.confirmed,
+        provider = user.provider,
+        createdAt = createdAt.ifBlank { now },
+        updatedAt = updatedAt.ifBlank { now },
+        publishedAt = publishedAt.ifBlank { now },
         // Avatar fields
         avatarId = avatar?.id,
         avatarDocumentId = avatar?.documentId,
@@ -97,12 +102,12 @@ fun Profile.toEntity(): ProfileEntity {
         avatarSmallUrl = avatar?.formats?.small?.url,
         avatarMediumUrl = avatar?.formats?.medium?.url,
         avatarLargeUrl = avatar?.formats?.large?.url,
-        // Role fields
-        roleId = role?.id,
-        roleDocumentId = role?.documentId,
-        roleName = role?.name,
-        roleDescription = role?.description,
-        roleType = role?.type
+        // Role fields - not available in current Profile model
+        roleId = null,
+        roleDocumentId = null,
+        roleName = null,
+        roleDescription = null,
+        roleType = null
     )
 }
 
@@ -118,7 +123,10 @@ fun AddressEntity.toDomain(): Address {
         city = city,
         postCode = postCode,
         country = country,
-        phoneNumber = phoneNumber
+        phoneNumber = phoneNumber,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt
     )
 }
 
@@ -137,9 +145,9 @@ fun Address.toEntity(profileId: Int): AddressEntity {
         postCode = postCode,
         country = country,
         phoneNumber = phoneNumber,
-        createdAt = now,
-        updatedAt = now,
-        publishedAt = now
+        createdAt = createdAt.ifBlank { now },
+        updatedAt = updatedAt.ifBlank { now },
+        publishedAt = publishedAt.ifBlank { now }
     )
 }
 
@@ -150,7 +158,10 @@ fun UserAdvertEntity.toDomain(): UserAdvert {
         documentId = documentId,
         title = title,
         description = description,
-        slug = slug
+        slug = slug,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt
     )
 }
 
@@ -163,9 +174,9 @@ fun UserAdvert.toEntity(profileId: Int): UserAdvertEntity {
         documentId = documentId,
         title = title,
         description = description,
-        slug = slug,
-        createdAt = now,
-        updatedAt = now,
-        publishedAt = now
+        slug = slug ?: "",
+        createdAt = createdAt.ifBlank { now },
+        updatedAt = updatedAt.ifBlank { now },
+        publishedAt = publishedAt.ifBlank { now }
     )
 }
