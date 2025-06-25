@@ -8,7 +8,7 @@ import io.ktor.http.*
 class AdvertApiService {
     
     private val client = HttpClient.client
-    private val baseUrl = "http://localhost:1337/api"
+    private val baseUrl = "https://8c0c-86-156-238-78.ngrok-free.app/api"
     
     suspend fun getAllAdverts(): Result<StrapiAdvertResponse> {
         return try {

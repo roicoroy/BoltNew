@@ -6,6 +6,8 @@ import com.example.boltnew.data.model.*
 import com.example.boltnew.data.database.AdvertDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity
+import com.example.boltnew.data.mapper.toStrapiCreateRequest
+import com.example.boltnew.data.mapper.toStrapiUpdateRequest
 import com.example.boltnew.data.network.AdvertApiService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

@@ -1,5 +1,7 @@
 package com.example.boltnew.di
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.provideDatabase
 import com.example.boltnew.data.network.AdvertApiService
 import com.example.boltnew.data.repository.AdvertRepository
@@ -13,6 +15,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
+@RequiresApi(Build.VERSION_CODES.O)
 val appModule = module {
     
     // Database
