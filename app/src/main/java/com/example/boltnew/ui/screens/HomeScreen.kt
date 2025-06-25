@@ -40,7 +40,7 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
-    // Pull-to-refresh state
+    // Pull-to-refresh state - using the isRefreshing from ViewModel
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refreshAdverts() }
