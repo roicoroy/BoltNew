@@ -1,4 +1,4 @@
-package com.example.boltnew.data.model
+package com.example.boltnew.data.model.auth.profile
 
 import java.time.LocalDate
 

@@ -5,7 +5,9 @@ import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.ProfileDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity
-import com.example.boltnew.data.model.*
+import com.example.boltnew.data.model.auth.profile.Address
+import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.model.auth.profile.ProfileUser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

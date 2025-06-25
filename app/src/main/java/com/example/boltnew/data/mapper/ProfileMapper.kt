@@ -3,7 +3,13 @@ package com.example.boltnew.data.mapper
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.boltnew.data.database.*
-import com.example.boltnew.data.model.*
+import com.example.boltnew.data.model.auth.profile.Address
+import com.example.boltnew.data.model.auth.profile.Avatar
+import com.example.boltnew.data.model.auth.profile.AvatarFormat
+import com.example.boltnew.data.model.auth.profile.AvatarFormats
+import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.model.auth.profile.ProfileUser
+import com.example.boltnew.data.model.auth.profile.UserAdvert
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -54,17 +60,17 @@ fun ProfileEntity.toDomain(
                 updatedAt = updatedAt,
                 publishedAt = publishedAt,
                 formats = AvatarFormats(
-                    thumbnail = avatarThumbnailUrl?.let { 
-                        AvatarFormat("thumbnail", it, 0, 0, 0.0, "", "", "", 0) 
+                    thumbnail = avatarThumbnailUrl?.let {
+                        AvatarFormat("thumbnail", it, 0, 0, 0.0, "", "", "", 0)
                     },
-                    small = avatarSmallUrl?.let { 
-                        AvatarFormat("small", it, 0, 0, 0.0, "", "", "", 0) 
+                    small = avatarSmallUrl?.let {
+                        AvatarFormat("small", it, 0, 0, 0.0, "", "", "", 0)
                     },
-                    medium = avatarMediumUrl?.let { 
-                        AvatarFormat("medium", it, 0, 0, 0.0, "", "", "", 0) 
+                    medium = avatarMediumUrl?.let {
+                        AvatarFormat("medium", it, 0, 0, 0.0, "", "", "", 0)
                     },
-                    large = avatarLargeUrl?.let { 
-                        AvatarFormat("large", it, 0, 0, 0.0, "", "", "", 0) 
+                    large = avatarLargeUrl?.let {
+                        AvatarFormat("large", it, 0, 0, 0.0, "", "", "", 0)
                     }
                 )
             )

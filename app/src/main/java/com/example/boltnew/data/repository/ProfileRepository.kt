@@ -1,6 +1,6 @@
 package com.example.boltnew.data.repository
 
-import com.example.boltnew.data.model.Profile
+import com.example.boltnew.data.model.auth.profile.Profile
 import kotlinx.coroutines.flow.Flow
 
 interface ProfileRepository {

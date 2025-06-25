@@ -2,7 +2,20 @@ package com.example.boltnew.data.mapper
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.boltnew.data.model.*
+import com.example.boltnew.data.model.advert.Advert
+import com.example.boltnew.data.model.advert.AdvertCategory
+import com.example.boltnew.data.model.advert.AdvertCover
+import com.example.boltnew.data.model.advert.AdvertCoverFormat
+import com.example.boltnew.data.model.advert.AdvertCoverFormats
+import com.example.boltnew.data.model.advert.StrapiAdvert
+import com.example.boltnew.data.model.advert.StrapiAdvertCreateData
+import com.example.boltnew.data.model.advert.StrapiAdvertCreateRequest
+import com.example.boltnew.data.model.advert.StrapiAdvertUpdateData
+import com.example.boltnew.data.model.advert.StrapiAdvertUpdateRequest
+import com.example.boltnew.data.model.advert.StrapiCategory
+import com.example.boltnew.data.model.advert.StrapiCover
+import com.example.boltnew.data.model.advert.StrapiCoverFormat
+import com.example.boltnew.data.model.advert.StrapiCoverFormats
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter

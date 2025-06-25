@@ -12,7 +12,7 @@ import android.content.Context
         AddressEntity::class, 
         UserAdvertEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

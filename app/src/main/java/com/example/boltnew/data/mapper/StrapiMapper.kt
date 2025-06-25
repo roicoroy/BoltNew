@@ -2,7 +2,18 @@ package com.example.boltnew.data.mapper
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.boltnew.data.model.*
+import com.example.boltnew.data.model.auth.profile.Address
+import com.example.boltnew.data.model.auth.profile.Avatar
+import com.example.boltnew.data.model.auth.profile.AvatarFormat
+import com.example.boltnew.data.model.auth.profile.AvatarFormats
+import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.model.auth.profile.ProfileUser
+import com.example.boltnew.data.model.auth.profile.StrapiProfile
+import com.example.boltnew.data.model.auth.profile.UserAdvert
+import com.example.boltnew.data.model.auth.user.StrapiUser
+import com.example.boltnew.data.model.auth.user.User
+import com.example.boltnew.data.model.auth.user.UserProfile
+import com.example.boltnew.data.model.auth.user.UserRole
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime

@@ -19,10 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.model.Advert
+import com.example.boltnew.data.model.advert.Advert
 import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
 import com.example.boltnew.utils.DisplayResult
-import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 

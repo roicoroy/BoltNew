@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -26,18 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.boltnew.data.model.Profile
-import com.example.boltnew.data.model.Address
+import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.model.auth.profile.Address
+import com.example.boltnew.data.model.auth.profile.UserAdvert
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.utils.CameraUtils
 import com.example.boltnew.utils.DisplayResult
-import com.example.boltnew.utils.RequestState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -409,7 +407,7 @@ private fun ProfileInfoCard(profile: Profile) {
             )
             
             ProfileInfoItem(
-                icon = Icons.Default.Security,
+                icon = Icons.Default.DateRange,
                 label = "Provider",
                 value = profile.provider.replaceFirstChar { it.uppercase() }
             )
@@ -482,7 +480,7 @@ private fun AddressCard(address: Address) {
 }
 
 @Composable
-private fun UserAdvertCard(advert: com.example.boltnew.data.model.UserAdvert) {
+private fun UserAdvertCard(advert: UserAdvert) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),

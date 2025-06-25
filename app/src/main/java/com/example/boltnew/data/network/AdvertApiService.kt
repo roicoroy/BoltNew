@@ -1,6 +1,10 @@
 package com.example.boltnew.data.network
 
-import com.example.boltnew.data.model.*
+import com.example.boltnew.data.model.advert.StrapiAdvertCreateRequest
+import com.example.boltnew.data.model.advert.StrapiAdvertResponse
+import com.example.boltnew.data.model.advert.StrapiAdvertSingleResponse
+import com.example.boltnew.data.model.advert.StrapiAdvertUpdateRequest
+import com.example.boltnew.data.model.advert.StrapiCategory
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*

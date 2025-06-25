@@ -1,4 +1,4 @@
-package com.example.boltnew.data.model
+package com.example.boltnew.data.model.advert
 
 import java.time.LocalDateTime
 

@@ -1,4 +1,4 @@
-package com.example.boltnew.data.model
+package com.example.boltnew.data.model.auth.user
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -2,17 +2,19 @@ package com.example.boltnew.data.repository
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.boltnew.data.model.*
 import com.example.boltnew.data.database.AdvertDao
 import com.example.boltnew.data.mapper.toDomain
 import com.example.boltnew.data.mapper.toEntity
 import com.example.boltnew.data.mapper.toStrapiCreateRequest
 import com.example.boltnew.data.mapper.toStrapiUpdateRequest
+import com.example.boltnew.data.model.advert.Advert
+import com.example.boltnew.data.model.advert.AdvertCategory
+import com.example.boltnew.data.model.advert.AdvertCover
+import com.example.boltnew.data.model.advert.AdvertCoverFormat
+import com.example.boltnew.data.model.advert.AdvertCoverFormats
 import com.example.boltnew.data.network.AdvertApiService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import java.time.LocalDateTime
 
 class AdvertRepositoryImpl(
@@ -235,15 +237,18 @@ class AdvertRepositoryImpl(
                 }
             }
         } catch (e: Exception) {
+            println("EEEEE :::: $e")
+
             // If API fails, check if we have local data
+            val count = advertDao.getAdvertCount()
+            if (count == 0) {
+                val sampleAdverts = getSampleAdverts()
+                insertAdverts(sampleAdverts)
+            }
         }
         
         // Only use sample data if no API data and no local data
-        val count = advertDao.getAdvertCount()
-        if (count == 0) {
-            val sampleAdverts = getSampleAdverts()
-            insertAdverts(sampleAdverts)
-        }
+
     }
     
     // New method to refresh data from API
