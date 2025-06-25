@@ -158,7 +158,21 @@ class AdvertApiService {
         }
     }
     
-    suspend fun getCategories(): Result<List<StrapiCategoryOption>> {
+    suspend fun getCategories(): Result<List<String>> {
+        return try {
+            val response = client.get("$baseUrl/categories") {
+                contentType(ContentType.Application.Json)
+                header("ngrok-skip-browser-warning", "true")
+            }
+            val categoriesResponse = response.body<StrapiCategoriesResponse>()
+            val categoryNames = categoriesResponse.data.map { it.name }.distinct()
+            Result.success(categoryNames)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getCategoriesWithDetails(): Result<List<StrapiCategoryOption>> {
         return try {
             val response = client.get("$baseUrl/categories") {
                 contentType(ContentType.Application.Json)

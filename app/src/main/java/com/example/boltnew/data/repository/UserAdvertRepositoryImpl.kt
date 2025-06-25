@@ -275,7 +275,7 @@ class UserAdvertRepositoryImpl(
     
     override suspend fun getCategories(): Result<List<StrapiCategoryOption>> {
         return try {
-            advertApiService.getCategories()
+            advertApiService.getCategoriesWithDetails()
         } catch (e: Exception) {
             Result.failure(e)
         }
