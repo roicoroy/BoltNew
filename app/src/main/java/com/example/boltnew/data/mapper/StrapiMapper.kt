@@ -71,8 +71,8 @@ private fun parseDate(dateString: String): String {
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun StrapiProfile.toDomain(): Profile {
-    println("Mapping StrapiProfile to Domain Profile")
-    println("StrapiProfile data: ${this.data}")
+    println("🔄 Mapping StrapiProfile to Domain Profile")
+    println("📊 StrapiProfile data: ${this.data}")
     
     return Profile(
         id = data.id,
@@ -99,7 +99,7 @@ fun StrapiProfile.toDomain(): Profile {
         } else null,
         userAdverts = data.adverts.map { it.toDomain() }
     ).also {
-        println("Mapped Profile: $it")
+        println("✅ Mapped Profile: $it")
     }
 }
 

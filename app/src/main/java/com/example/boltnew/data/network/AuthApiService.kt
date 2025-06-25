@@ -68,7 +68,34 @@ class AuthApiService {
         return try {
             println("🔍 Fetching user profile with token: ${token.take(20)}...")
 
-            val response = client.get("$baseUrl/users/me") {
+            // First, get the current user to find their profile ID
+            val userResponse = client.get("$baseUrl/users/me") {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
+                header("ngrok-skip-browser-warning", "true")
+                parameter("populate", "profile")
+            }
+            
+            val userResponseText = userResponse.bodyAsText()
+            println("📥 User Response: $userResponseText")
+            
+            // Parse user response to get profile document ID
+            val userJson = json.parseToJsonElement(userResponseText)
+            val profileDocumentId = try {
+                userJson.jsonObject["profile"]?.jsonObject?.get("documentId")?.jsonPrimitive?.content
+            } catch (e: Exception) {
+                null
+            }
+            
+            if (profileDocumentId == null) {
+                println("❌ No profile document ID found for user")
+                return Result.failure(Exception("User has no associated profile. Please create a profile in Strapi first."))
+            }
+            
+            println("🎯 Found profile document ID: $profileDocumentId")
+            
+            // Now fetch the complete profile using the specific endpoint
+            val profileResponse = client.get("$baseUrl/profiles/$profileDocumentId") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
@@ -76,21 +103,21 @@ class AuthApiService {
             }
             
             // Get raw response text first
-            val rawResponse = response.bodyAsText()
-            println("📥 Raw API Response: $rawResponse")
+            val rawResponse = profileResponse.bodyAsText()
+            println("📥 Raw Profile API Response: $rawResponse")
             
             // Check if response is empty
             if (rawResponse.isBlank()) {
-                println("❌ Empty response from API")
+                println("❌ Empty response from profile API")
                 return Result.failure(Exception("Empty response from profile API"))
             }
             
             // Try to parse the JSON structure manually first
             try {
                 val jsonElement = json.parseToJsonElement(rawResponse)
-                println("📊 Parsed JSON Structure: $jsonElement")
+                println("📊 Parsed Profile JSON Structure: $jsonElement")
             } catch (e: Exception) {
-                println("❌ Failed to parse JSON: ${e.message}")
+                println("❌ Failed to parse profile JSON: ${e.message}")
                 return Result.failure(Exception("Invalid JSON response: ${e.message}"))
             }
             
@@ -99,17 +126,23 @@ class AuthApiService {
                 val profileResponse = json.decodeFromString<StrapiProfile>(rawResponse)
                 println("✅ Successfully parsed StrapiProfile: $profileResponse")
                 
-                // Check if the data field is populated
+                // Validate the profile data
                 if (profileResponse.data.id == 0) {
                     println("⚠️ Profile data appears to be empty or default")
+                    return Result.failure(Exception("Profile data is empty"))
                 }
                 
+                if (profileResponse.data.user.id == 0) {
+                    println("⚠️ Profile user data appears to be empty")
+                    return Result.failure(Exception("Profile user data is empty"))
+                }
+                
+                println("🎉 Profile successfully loaded: ID=${profileResponse.data.id}, User=${profileResponse.data.user.username}")
                 Result.success(profileResponse)
             } catch (e: Exception) {
                 println("❌ Failed to deserialize to StrapiProfile: ${e.message}")
-                
-                // Try alternative population strategies
-                return tryAlternativeProfileFetch(token)
+                e.printStackTrace()
+                Result.failure(Exception("Failed to parse profile response: ${e.message}"))
             }
             
         } catch (e: Exception) {
@@ -117,55 +150,6 @@ class AuthApiService {
             e.printStackTrace()
             Result.failure(e)
         }
-    }
-    
-    private suspend fun tryAlternativeProfileFetch(token: String): Result<StrapiProfile> {
-        val strategies = listOf(
-            "populate[profile][populate]=*",
-            "populate[profile]=*&populate[addresses]=*&populate[adverts]=*",
-            "populate=profile,addresses,adverts",
-            "populate=deep"
-        )
-        
-        for ((index, strategy) in strategies.withIndex()) {
-            try {
-                println("🔄 Trying strategy ${index + 1}: $strategy")
-                
-                val response = client.get("$baseUrl/users/me") {
-                    contentType(ContentType.Application.Json)
-                    header("Authorization", "Bearer $token")
-                    header("ngrok-skip-browser-warning", "true")
-                    url {
-                        // Parse strategy and add parameters
-                        if (strategy.contains("populate[")) {
-                            // Complex populate strategy
-                            parameters.append("populate[profile][populate]", "*")
-                        } else {
-                            parameters.append("populate", strategy.substringAfter("populate="))
-                        }
-                    }
-                }
-                
-                val rawResponse = response.bodyAsText()
-                println("📥 Strategy ${index + 1} Response: $rawResponse")
-                
-                if (rawResponse.isNotBlank()) {
-                    try {
-                        val profileResponse = json.decodeFromString<StrapiProfile>(rawResponse)
-                        println("✅ Strategy ${index + 1} Success: $profileResponse")
-                        return Result.success(profileResponse)
-                    } catch (e: Exception) {
-                        println("❌ Strategy ${index + 1} Parse Error: ${e.message}")
-                        continue
-                    }
-                }
-            } catch (e: Exception) {
-                println("❌ Strategy ${index + 1} Request Error: ${e.message}")
-                continue
-            }
-        }
-        
-        return Result.failure(Exception("All profile fetch strategies failed"))
     }
     
     // Method to get raw profile data for debugging
