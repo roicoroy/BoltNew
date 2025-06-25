@@ -37,6 +37,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -215,18 +216,25 @@ private fun ProfileContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                if (profile.role != null) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = profile.role.name,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
+                // Account status instead of role
+                Surface(
+                    color = if (profile.isConfirmed) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.errorContainer
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = if (profile.isConfirmed) "Verified Account" else "Pending Verification",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (profile.isConfirmed) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        }
+                    )
                 }
             }
         }
@@ -383,7 +391,7 @@ private fun ProfileInfoCard(profile: Profile) {
             ProfileInfoItem(
                 icon = Icons.Default.DateRange,
                 label = "Date of Birth",
-                value = profile.dateOfBirth.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"))
+                value = profile.dateOfBirthFormatted?.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")) ?: "Not set"
             )
             
             if (profile.fullAddress.isNotBlank()) {
@@ -394,18 +402,16 @@ private fun ProfileInfoCard(profile: Profile) {
                 )
             }
             
-            if (profile.role != null) {
-                ProfileInfoItem(
-                    icon = Icons.Default.DateRange,
-                    label = "Role",
-                    value = profile.role.name
-                )
-            }
-            
             ProfileInfoItem(
                 icon = Icons.Default.AccountCircle,
                 label = "Account Status",
                 value = if (profile.isConfirmed) "Verified" else "Pending Verification"
+            )
+            
+            ProfileInfoItem(
+                icon = Icons.Default.Security,
+                label = "Provider",
+                value = profile.provider.replaceFirstChar { it.uppercase() }
             )
         }
     }
