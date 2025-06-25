@@ -110,7 +110,16 @@ class AuthRepositoryImpl(
                 // First, get raw data to understand the structure
                 val rawDataResult = authApiService.getProfileDataRaw(token)
                 if (rawDataResult.isSuccess) {
-                    println("📋 Raw profile data structure: ${rawDataResult.getOrNull()}")
+                    val rawData = rawDataResult.getOrNull()
+                    println("📋 Raw profile data: $rawData")
+                    
+                    // Check if the response indicates the user doesn't have a profile
+                    if (rawData?.contains("\"profile\":null") == true || 
+                        rawData?.contains("\"profile\":{}") == true ||
+                        rawData?.isBlank() == true) {
+                        println("⚠️ User has no profile data in Strapi")
+                        return Result.failure(Exception("User profile not found. Please ensure your Strapi user has an associated profile."))
+                    }
                 }
                 
                 // Now try to get structured profile data
@@ -118,6 +127,12 @@ class AuthRepositoryImpl(
                 if (result.isSuccess) {
                     val strapiProfile = result.getOrThrow()
                     println("✅ Strapi profile received: $strapiProfile")
+                    
+                    // Check if the profile data is actually populated
+                    if (strapiProfile.data.id == 0 && strapiProfile.data.user.id == 0) {
+                        println("⚠️ Profile data appears to be empty")
+                        return Result.failure(Exception("Profile data is empty. Please check your Strapi configuration and ensure the user has a profile."))
+                    }
                     
                     val domainProfile = strapiProfile.toDomain()
                     println("🎯 Domain profile mapped: $domainProfile")

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class StrapiProfile(
     @SerialName("data")
-    val `data`: Data = Data(),
+    val data: Data = Data(),
     @SerialName("meta")
     val meta: Meta = Meta()
 ) {
@@ -307,5 +307,20 @@ data class StrapiProfile(
     }
 
     @Serializable
-    class Meta
+    data class Meta(
+        @SerialName("pagination")
+        val pagination: Pagination? = null
+    ) {
+        @Serializable
+        data class Pagination(
+            @SerialName("page")
+            val page: Int = 1,
+            @SerialName("pageSize")
+            val pageSize: Int = 25,
+            @SerialName("pageCount")
+            val pageCount: Int = 1,
+            @SerialName("total")
+            val total: Int = 0
+        )
+    }
 }
