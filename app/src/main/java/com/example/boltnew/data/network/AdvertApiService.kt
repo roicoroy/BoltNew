@@ -23,7 +23,6 @@ class AdvertApiService {
             val response = client.get("$baseUrl/adverts") {
                 parameter("populate", "*")
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -36,7 +35,6 @@ class AdvertApiService {
             val response = client.get("$baseUrl/adverts/$id") {
                 parameter("populate", "*")
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertSingleResponse>())
         } catch (e: Exception) {
@@ -50,7 +48,6 @@ class AdvertApiService {
                 parameter("populate", "*")
                 parameter("filters[category][slug][\$eq]", categorySlug)
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -65,7 +62,6 @@ class AdvertApiService {
                 parameter("filters[\$or][0][title][\$containsi]", query)
                 parameter("filters[\$or][1][description][\$containsi]", query)
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<StrapiAdvertResponse>())
         } catch (e: Exception) {
@@ -79,7 +75,6 @@ class AdvertApiService {
             
             val response = client.post("$baseUrl/adverts") {
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -131,7 +126,7 @@ class AdvertApiService {
         }
     }
     
-    suspend fun deleteAdvert(id: Int, token: String): Result<AdvertCreateResponse> {
+    suspend fun deleteAdvert(id: String, token: String): Result<AdvertCreateResponse> {
         return try {
             println("🗑️ Deleting advert $id...")
             

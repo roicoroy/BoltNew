@@ -126,7 +126,7 @@ fun Advert.toStrapiCreateRequest(): StrapiAdvertCreateRequest {
             title = title,
             description = description,
             slug = slug,
-            category = category.id
+            category = listOf(category.id.toString())
         )
     )
 }
@@ -138,7 +138,7 @@ fun Advert.toStrapiUpdateRequest(): StrapiAdvertUpdateRequest {
             title = title,
             description = description,
             slug = slug,
-            category = category.id
+            category = listOf(category.id.toString())
         )
     )
 }

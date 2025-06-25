@@ -260,7 +260,7 @@ class AdvertRepositoryImpl(
         try {
             // Delete via API first
             val token = tokenManager.getToken()
-            val apiResult = apiService.deleteAdvert(advert.id, token.toString())
+            val apiResult = apiService.deleteAdvert(advert.documentId, token.toString())
 
             if (apiResult.isSuccess) {
                 // Delete from local database

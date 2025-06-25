@@ -240,7 +240,7 @@ class UserAdvertRepositoryImpl(
             }
             
             // Step 3: Delete the advert
-            val deleteResult = advertApiService.deleteAdvert(advertToDelete.id, token)
+            val deleteResult = advertApiService.deleteAdvert(advertToDelete.documentId, token)
             
             if (deleteResult.isFailure) {
                 return Result.failure(deleteResult.exceptionOrNull() ?: Exception("Advert deletion failed"))
