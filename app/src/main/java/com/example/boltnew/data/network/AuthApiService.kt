@@ -57,7 +57,9 @@ class AuthApiService {
     
     suspend fun getUserProfile(token: String): Result<StrapiProfile> {
         return try {
-            // First, let's try the users/me endpoint with full population
+            println("🔍 Fetching user profile with token: ${token.take(20)}...")
+
+            // Try the most comprehensive population strategy first
             val response = client.get("$baseUrl/users/me") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
@@ -105,7 +107,7 @@ class AuthApiService {
             println("Raw Profile Data: $rawData")
             Result.success(rawData)
         } catch (e: Exception) {
-            println("Raw Profile Data Error: ${e.message}")
+            println("❌ Raw Profile Data Error: ${e.message}")
             Result.failure(e)
         }
     }
