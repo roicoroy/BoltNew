@@ -13,15 +13,17 @@ import com.example.boltnew.data.model.advert.AdvertCover
 import com.example.boltnew.data.model.advert.AdvertCoverFormat
 import com.example.boltnew.data.model.advert.AdvertCoverFormats
 import com.example.boltnew.data.network.AdvertApiService
+import com.example.boltnew.data.network.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.time.LocalDateTime
 
 class AdvertRepositoryImpl(
     private val advertDao: AdvertDao,
-    private val apiService: AdvertApiService
+    private val apiService: AdvertApiService,
+    private val tokenManager: TokenManager
 ) : AdvertRepository {
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getAllAdverts(): Flow<List<Advert>> {
         return flow {
@@ -31,11 +33,11 @@ class AdvertRepositoryImpl(
                 if (apiResult.isSuccess) {
                     val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
                     val domainAdverts = strapiAdverts.toDomain()
-                    
+
                     // Update local cache
                     advertDao.deleteAllAdverts()
                     advertDao.insertAdverts(domainAdverts.toEntity())
-                    
+
                     emit(domainAdverts)
                 } else {
                     // If API fails, fall back to local data
@@ -53,7 +55,7 @@ class AdvertRepositoryImpl(
             }
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun getAdvertById(id: Int): Advert? {
         // Try to get from API first, then fall back to local
@@ -61,7 +63,7 @@ class AdvertRepositoryImpl(
             val apiResult = apiService.getAdvertById(id)
             if (apiResult.isSuccess) {
                 val strapiAdvert = apiResult.getOrNull()?.data
-                strapiAdvert?.let { 
+                strapiAdvert?.let {
                     val domainAdvert = it.toDomain()
                     // Cache in local database
                     advertDao.insertAdvert(domainAdvert.toEntity())
@@ -71,11 +73,11 @@ class AdvertRepositoryImpl(
         } catch (e: Exception) {
             // If API fails, fall back to local data
         }
-        
+
         // Fall back to local database
         return advertDao.getAdvertById(id)?.toDomain()
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getAdvertsByCategory(categorySlug: String): Flow<List<Advert>> {
         return flow {
@@ -102,7 +104,7 @@ class AdvertRepositoryImpl(
             }
         }
     }
-    
+
     override fun getAllCategories(): Flow<List<String>> {
         return flow {
             try {
@@ -127,7 +129,7 @@ class AdvertRepositoryImpl(
             }
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun searchAdverts(query: String): Flow<List<Advert>> {
         return flow {
@@ -154,14 +156,15 @@ class AdvertRepositoryImpl(
             }
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun insertAdvert(advert: Advert) {
         try {
             // Create advert via API first
+            val token = tokenManager.getToken()
             val createRequest = advert.toStrapiCreateRequest()
-            val apiResult = apiService.createAdvert(createRequest)
-            
+            val apiResult = apiService.createAdvert(createRequest, token.toString())
+
             if (apiResult.isSuccess) {
                 val createdAdvert = apiResult.getOrNull()?.data?.toDomain()
                 createdAdvert?.let {
@@ -177,20 +180,21 @@ class AdvertRepositoryImpl(
             advertDao.insertAdvert(advert.toEntity())
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun insertAdverts(adverts: List<Advert>) {
         // For bulk insert, prioritize local storage
         advertDao.insertAdverts(adverts.toEntity())
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun updateAdvert(advert: Advert) {
         try {
             // Update via API first
+            val token = tokenManager.getToken()
             val updateRequest = advert.toStrapiUpdateRequest()
-            val apiResult = apiService.updateAdvert(advert.id, updateRequest)
-            
+            val apiResult = apiService.updateAdvert(advert.id, updateRequest, token.toString())
+
             if (apiResult.isSuccess) {
                 val updatedAdvert = apiResult.getOrNull()?.data?.toDomain()
                 updatedAdvert?.let {
@@ -206,13 +210,15 @@ class AdvertRepositoryImpl(
             advertDao.updateAdvert(advert.toEntity())
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun deleteAdvert(advert: Advert) {
         try {
             // Delete via API first
-            val apiResult = apiService.deleteAdvert(advert.id)
-            
+            val token = tokenManager.getToken()
+
+            val apiResult = apiService.deleteAdvert(advert.id, token.toString())
+
             if (apiResult.isSuccess) {
                 // Delete from local database
                 advertDao.deleteAdvert(advert.toEntity())
@@ -222,7 +228,7 @@ class AdvertRepositoryImpl(
             advertDao.deleteAdvert(advert.toEntity())
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun initializeData() {
         // Always try to fetch from API first
@@ -246,11 +252,11 @@ class AdvertRepositoryImpl(
                 insertAdverts(sampleAdverts)
             }
         }
-        
+
         // Only use sample data if no API data and no local data
 
     }
-    
+
     // New method to refresh data from API
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun refreshFromApi(): Boolean {
@@ -259,7 +265,7 @@ class AdvertRepositoryImpl(
             if (apiResult.isSuccess) {
                 val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
                 val domainAdverts = strapiAdverts.toDomain()
-                
+
                 // Clear existing data and insert fresh data
                 advertDao.deleteAllAdverts()
                 advertDao.insertAdverts(domainAdverts.toEntity())
@@ -271,11 +277,11 @@ class AdvertRepositoryImpl(
             false
         }
     }
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun getSampleAdverts(): List<Advert> {
         val now = LocalDateTime.now()
-        
+
         return listOf(
             Advert(
                 id = 1,

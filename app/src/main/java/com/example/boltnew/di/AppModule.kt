@@ -29,29 +29,29 @@ import org.koin.dsl.module
 
 @RequiresApi(Build.VERSION_CODES.O)
 val appModule = module {
-    
+
     // Database
     single { provideDatabase(androidContext()) }
     single { get<com.example.boltnew.data.database.AppDatabase>().advertDao() }
     single { get<com.example.boltnew.data.database.AppDatabase>().profileDao() }
-    
+
     // Token Management
     single { TokenManager(androidContext()) }
     single { AuthenticatedHttpClient(get()) }
-    
+
     // Network
     single { AdvertApiService() }
     single { AuthApiService() }
     single { UploadApiService() }
     single { AddressApiService() }
-    
+
     // Repository
-    single<AdvertRepository> { AdvertRepositoryImpl(get(), get()) }
+    single<AdvertRepository> { AdvertRepositoryImpl(get(), get(), get()) }
     single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<AddressRepository> { AddressRepositoryImpl(get(), get(), get()) }
     single<UserAdvertRepository> { UserAdvertRepositoryImpl(get(), get(), get(), get()) }
-    
+
     // ViewModels
     viewModel { AdvertViewModel(get(), get()) }
     viewModel { AdvertDetailViewModel(get()) }
