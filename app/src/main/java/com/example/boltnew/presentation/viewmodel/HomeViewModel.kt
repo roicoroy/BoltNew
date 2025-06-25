@@ -30,6 +30,9 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    
     init {
         initializeData()
         loadAdverts()
@@ -53,13 +56,17 @@ class HomeViewModel(
         viewModelScope.launch {
             advertRepository.getAllAdverts()
                 .onStart { 
-                    _advertsState.value = RequestState.Loading 
+                    if (!_isRefreshing.value) {
+                        _advertsState.value = RequestState.Loading
+                    }
                 }
                 .catch { exception ->
                     _advertsState.value = RequestState.Error("Failed to load adverts: ${exception.message}")
+                    _isRefreshing.value = false
                 }
                 .collect { adverts ->
                     _advertsState.value = RequestState.Success(adverts)
+                    _isRefreshing.value = false
                 }
         }
     }
@@ -137,8 +144,25 @@ class HomeViewModel(
     
     @RequiresApi(Build.VERSION_CODES.O)
     fun refreshAdverts() {
-        _advertsState.value = RequestState.Loading
-        loadAdverts()
+        _isRefreshing.value = true
+        
+        // Clear current filters and search when refreshing
+        _uiState.value = _uiState.value.copy(
+            selectedCategory = null,
+            searchQuery = ""
+        )
+        
+        viewModelScope.launch {
+            try {
+                // Force refresh from API
+                _advertsState.value = RequestState.Loading
+                loadAdverts()
+                loadCategories()
+            } catch (e: Exception) {
+                _advertsState.value = RequestState.Error("Failed to refresh adverts: ${e.message}")
+                _isRefreshing.value = false
+            }
+        }
     }
     
     fun clearSelectedCategory() {
