@@ -7,7 +7,6 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.Profile
-import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.utils.ImageUtils
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
