@@ -47,7 +47,7 @@ class AuthApiService {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
-                parameter("populate", "profile,role")
+                parameter("populate", "*")
             }
             Result.success(response.body<StrapiUser>())
         } catch (e: Exception) {
@@ -63,9 +63,7 @@ class AuthApiService {
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
                 // Try different population strategies for Strapi 5
-                parameter("populate[profile][populate][0]", "avatar")
-                parameter("populate[profile][populate][1]", "addresses")
-                parameter("populate[profile][populate][2]", "adverts")
+                parameter("populate", "*")
             }
             
             // Log the raw response for debugging
@@ -100,7 +98,7 @@ class AuthApiService {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
-                parameter("populate", "deep")
+                parameter("populate", "*")
             }
             
             val rawData = response.body<Map<String, Any>>()
