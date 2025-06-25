@@ -183,7 +183,9 @@ data class StrapiAdvertCreateData(
     @SerialName("slug")
     val slug: String,
     @SerialName("category")
-    val category: Int // Category ID
+    val category: Int, // Category ID
+    @SerialName("cover")
+    val cover: Int? = null // Cover image ID
 )
 
 @Serializable
@@ -201,5 +203,7 @@ data class StrapiAdvertUpdateData(
     @SerialName("slug")
     val slug: String? = null,
     @SerialName("category")
-    val category: Int? = null
+    val category: Int? = null,
+    @SerialName("cover")
+    val cover: Int? = null
 )

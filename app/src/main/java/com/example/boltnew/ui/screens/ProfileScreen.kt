@@ -34,6 +34,7 @@ import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.UserAdvert
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.ui.components.AddressFormModal
+import com.example.boltnew.ui.components.AdvertFormModal
 import com.example.boltnew.utils.CameraUtils
 import com.example.boltnew.utils.DisplayResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -54,6 +55,7 @@ fun ProfileScreen(
 ) {
     val profileState by viewModel.profileState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val context = LocalContext.current
     
     // Pull-to-refresh state
@@ -248,8 +250,12 @@ fun ProfileScreen(
                         onAddAddress = { viewModel.showAddAddressModal() },
                         onEditAddress = { address -> viewModel.showEditAddressModal(address) },
                         onDeleteAddress = { address -> viewModel.deleteAddress(address) },
+                        onAddAdvert = { viewModel.showAddAdvertModal() },
+                        onEditAdvert = { advert -> viewModel.showEditAdvertModal(advert) },
+                        onDeleteAdvert = { advert -> viewModel.deleteAdvert(advert) },
                         isUpdatingAvatar = uiState.isUpdatingAvatar,
-                        isAddressLoading = uiState.isAddressLoading
+                        isAddressLoading = uiState.isAddressLoading,
+                        isAdvertLoading = uiState.isAdvertLoading
                     )
                 }
             )
@@ -279,6 +285,37 @@ fun ProfileScreen(
             }
         }
     )
+    
+    // Advert Form Modal
+    AdvertFormModal(
+        isVisible = uiState.showAdvertModal,
+        advert = uiState.editingAdvert,
+        categories = categories,
+        isLoading = uiState.isAdvertLoading,
+        onDismiss = { viewModel.hideAdvertModal() },
+        onSave = { title, description, slug, categoryId, coverImageUri ->
+            if (uiState.editingAdvert != null) {
+                viewModel.updateAdvert(
+                    context = context,
+                    advert = uiState.editingAdvert!!,
+                    title = title,
+                    description = description,
+                    slug = slug,
+                    categoryId = categoryId,
+                    coverImageUri = coverImageUri
+                )
+            } else {
+                viewModel.createAdvert(
+                    context = context,
+                    title = title,
+                    description = description,
+                    slug = slug,
+                    categoryId = categoryId,
+                    coverImageUri = coverImageUri
+                )
+            }
+        }
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -289,8 +326,12 @@ private fun ProfileContent(
     onAddAddress: () -> Unit,
     onEditAddress: (Address) -> Unit,
     onDeleteAddress: (Address) -> Unit,
+    onAddAdvert: () -> Unit,
+    onEditAdvert: (UserAdvert) -> Unit,
+    onDeleteAdvert: (UserAdvert) -> Unit,
     isUpdatingAvatar: Boolean = false,
-    isAddressLoading: Boolean = false
+    isAddressLoading: Boolean = false,
+    isAdvertLoading: Boolean = false
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -461,10 +502,13 @@ private fun ProfileContent(
         }
         
         // User Adverts Section
-        if (profile.userAdverts.isNotEmpty()) {
-            item {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -480,10 +524,29 @@ private fun ProfileContent(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                
+                // Add Advert Button
+                IconButton(
+                    onClick = onAddAdvert,
+                    enabled = !isAdvertLoading
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Advert",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            
+        }
+        
+        if (profile.userAdverts.isNotEmpty()) {
             items(profile.userAdverts) { advert ->
-                UserAdvertCard(advert = advert)
+                UserAdvertCard(
+                    advert = advert,
+                    onEdit = { onEditAdvert(advert) },
+                    onDelete = { onDeleteAdvert(advert) },
+                    isLoading = isAdvertLoading
+                )
             }
         } else {
             item {
@@ -511,10 +574,23 @@ private fun ProfileContent(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "You haven't created any adverts yet. Start by creating your first advert!",
+                            text = "Create your first advert to start sharing your services or products!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = onAddAdvert,
+                            enabled = !isAdvertLoading
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Create Advert")
+                        }
                     }
                 }
             }
@@ -792,7 +868,12 @@ private fun AddressCard(
 }
 
 @Composable
-private fun UserAdvertCard(advert: UserAdvert) {
+private fun UserAdvertCard(
+    advert: UserAdvert,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    isLoading: Boolean = false
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -802,20 +883,52 @@ private fun UserAdvertCard(advert: UserAdvert) {
             modifier = Modifier.padding(16.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Article,
-                    contentDescription = "Advert",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = advert.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Article,
+                        contentDescription = "Advert",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = advert.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                Row {
+                    IconButton(
+                        onClick = onEdit,
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Advert",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onDelete,
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Advert",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))

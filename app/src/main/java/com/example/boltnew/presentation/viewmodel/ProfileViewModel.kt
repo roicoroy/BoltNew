@@ -8,10 +8,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.model.auth.profile.UserAdvert
+import com.example.boltnew.data.network.StrapiCategoryOption
 import com.example.boltnew.data.repository.AddressRepository
 import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.data.repository.ProfileRepositoryImpl
+import com.example.boltnew.data.repository.UserAdvertRepository
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +27,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
-    private val addressRepository: AddressRepository
+    private val addressRepository: AddressRepository,
+    private val userAdvertRepository: UserAdvertRepository
 ) : ViewModel() {
     
     private val _profileState = MutableStateFlow<RequestState<Profile>>(RequestState.Idle)
@@ -33,8 +37,12 @@ class ProfileViewModel(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
+    private val _categories = MutableStateFlow<List<StrapiCategoryOption>>(emptyList())
+    val categories: StateFlow<List<StrapiCategoryOption>> = _categories.asStateFlow()
+    
     init {
         loadUserProfile()
+        loadCategories()
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
@@ -90,6 +98,22 @@ class ProfileViewModel(
                 println("Profile loading error: ${e.message}")
                 e.printStackTrace()
                 _profileState.value = RequestState.Error("Failed to load profile: ${e.message}")
+            }
+        }
+    }
+    
+    private fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                val result = userAdvertRepository.getCategories()
+                if (result.isSuccess) {
+                    _categories.value = result.getOrThrow()
+                    println("✅ Categories loaded: ${_categories.value.size}")
+                } else {
+                    println("❌ Failed to load categories: ${result.exceptionOrNull()?.message}")
+                }
+            } catch (e: Exception) {
+                println("💥 Categories loading error: ${e.message}")
             }
         }
     }
@@ -311,7 +335,187 @@ class ProfileViewModel(
         }
     }
     
-    // UI state management
+    // Advert CRUD operations
+    fun createAdvert(
+        context: Context,
+        title: String,
+        description: String,
+        slug: String,
+        categoryId: Int,
+        coverImageUri: Uri?
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAdvertLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("📝 Creating new advert for profile: ${currentProfile.documentId}")
+                
+                val result = userAdvertRepository.createAdvert(
+                    context = context,
+                    title = title,
+                    description = description,
+                    slug = slug,
+                    categoryId = categoryId,
+                    coverImageUri = coverImageUri,
+                    profileDocumentId = currentProfile.documentId
+                )
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Advert created successfully!",
+                        showAdvertModal = false
+                    )
+                    
+                    println("✅ Advert created successfully")
+                    
+                    // Reload profile to show new advert
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Failed to create advert: $error"
+                    )
+                    println("❌ Advert creation failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAdvertLoading = false,
+                    operationMessage = "Failed to create advert: ${e.message}"
+                )
+                println("💥 Advert creation error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    fun updateAdvert(
+        context: Context,
+        advert: UserAdvert,
+        title: String,
+        description: String,
+        slug: String,
+        categoryId: Int,
+        coverImageUri: Uri?
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAdvertLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("🔄 Updating advert: ${advert.documentId}")
+                
+                val result = userAdvertRepository.updateAdvert(
+                    context = context,
+                    advert = advert,
+                    title = title,
+                    description = description,
+                    slug = slug,
+                    categoryId = categoryId,
+                    coverImageUri = coverImageUri,
+                    profileDocumentId = currentProfile.documentId
+                )
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Advert updated successfully!",
+                        showAdvertModal = false,
+                        editingAdvert = null
+                    )
+                    
+                    println("✅ Advert updated successfully")
+                    
+                    // Reload profile to show updated advert
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Failed to update advert: $error"
+                    )
+                    println("❌ Advert update failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAdvertLoading = false,
+                    operationMessage = "Failed to update advert: ${e.message}"
+                )
+                println("💥 Advert update error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    fun deleteAdvert(advert: UserAdvert) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAdvertLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("🗑️ Deleting advert: ${advert.documentId}")
+                
+                val result = userAdvertRepository.deleteAdvert(advert.documentId, currentProfile.documentId)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Advert deleted successfully!"
+                    )
+                    
+                    println("✅ Advert deleted successfully")
+                    
+                    // Reload profile to remove deleted advert
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAdvertLoading = false,
+                        operationMessage = "Failed to delete advert: $error"
+                    )
+                    println("❌ Advert deletion failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAdvertLoading = false,
+                    operationMessage = "Failed to delete advert: ${e.message}"
+                )
+                println("💥 Advert deletion error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    // UI state management for addresses
     fun showAddAddressModal() {
         _uiState.value = _uiState.value.copy(
             showAddressModal = true,
@@ -333,9 +537,32 @@ class ProfileViewModel(
         )
     }
     
+    // UI state management for adverts
+    fun showAddAdvertModal() {
+        _uiState.value = _uiState.value.copy(
+            showAdvertModal = true,
+            editingAdvert = null
+        )
+    }
+    
+    fun showEditAdvertModal(advert: UserAdvert) {
+        _uiState.value = _uiState.value.copy(
+            showAdvertModal = true,
+            editingAdvert = advert
+        )
+    }
+    
+    fun hideAdvertModal() {
+        _uiState.value = _uiState.value.copy(
+            showAdvertModal = false,
+            editingAdvert = null
+        )
+    }
+    
     fun refreshProfile() {
         println("Refreshing profile...")
         loadUserProfile()
+        loadCategories()
     }
     
     fun clearOperationMessage() {
@@ -354,5 +581,8 @@ data class ProfileUiState(
     val isUpdatingAvatar: Boolean = false,
     val isAddressLoading: Boolean = false,
     val showAddressModal: Boolean = false,
-    val editingAddress: Address? = null
+    val editingAddress: Address? = null,
+    val isAdvertLoading: Boolean = false,
+    val showAdvertModal: Boolean = false,
+    val editingAdvert: UserAdvert? = null
 )

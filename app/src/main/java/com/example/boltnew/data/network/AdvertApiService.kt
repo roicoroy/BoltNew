@@ -7,7 +7,10 @@ import com.example.boltnew.data.model.advert.StrapiAdvertUpdateRequest
 import com.example.boltnew.data.model.advert.StrapiCategory
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 class AdvertApiService {
     
@@ -69,54 +72,150 @@ class AdvertApiService {
         }
     }
     
-    suspend fun createAdvert(request: StrapiAdvertCreateRequest): Result<StrapiAdvertSingleResponse> {
+    suspend fun createAdvert(request: StrapiAdvertCreateRequest, token: String): Result<StrapiAdvertSingleResponse> {
         return try {
+            println("📝 Creating new advert...")
+            
             val response = client.post("$baseUrl/adverts") {
-                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
+                contentType(ContentType.Application.Json)
                 setBody(request)
             }
-            Result.success(response.body<StrapiAdvertSingleResponse>())
+            
+            println("📤 Create advert response status: ${response.status}")
+            
+            if (response.status.isSuccess()) {
+                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                println("✅ Advert created successfully: ${advertResponse.data.id}")
+                Result.success(advertResponse)
+            } else {
+                val errorBody = response.bodyAsText()
+                println("❌ Advert creation failed: $errorBody")
+                Result.failure(Exception("Advert creation failed: ${response.status} - $errorBody"))
+            }
         } catch (e: Exception) {
+            println("💥 Advert creation error: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }
     
-    suspend fun updateAdvert(id: Int, request: StrapiAdvertUpdateRequest): Result<StrapiAdvertSingleResponse> {
+    suspend fun updateAdvert(id: Int, request: StrapiAdvertUpdateRequest, token: String): Result<StrapiAdvertSingleResponse> {
         return try {
+            println("🔄 Updating advert $id...")
+            
             val response = client.put("$baseUrl/adverts/$id") {
-                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
+                contentType(ContentType.Application.Json)
                 setBody(request)
             }
-            Result.success(response.body<StrapiAdvertSingleResponse>())
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    suspend fun deleteAdvert(id: Int): Result<StrapiAdvertSingleResponse> {
-        return try {
-            val response = client.delete("$baseUrl/adverts/$id") {
-                contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
+            
+            println("📤 Update advert response status: ${response.status}")
+            
+            if (response.status.isSuccess()) {
+                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                println("✅ Advert updated successfully: ${advertResponse.data.id}")
+                Result.success(advertResponse)
+            } else {
+                val errorBody = response.bodyAsText()
+                println("❌ Advert update failed: $errorBody")
+                Result.failure(Exception("Advert update failed: ${response.status} - $errorBody"))
             }
-            Result.success(response.body<StrapiAdvertSingleResponse>())
         } catch (e: Exception) {
+            println("💥 Advert update error: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }
     
-    suspend fun getCategories(): Result<List<String>> {
+    suspend fun deleteAdvert(id: Int, token: String): Result<StrapiAdvertSingleResponse> {
+        return try {
+            println("🗑️ Deleting advert $id...")
+            
+            val response = client.delete("$baseUrl/adverts/$id") {
+                header("Authorization", "Bearer $token")
+                header("ngrok-skip-browser-warning", "true")
+                contentType(ContentType.Application.Json)
+            }
+            
+            println("📤 Delete advert response status: ${response.status}")
+            
+            if (response.status.isSuccess()) {
+                val advertResponse = response.body<StrapiAdvertSingleResponse>()
+                println("✅ Advert deleted successfully")
+                Result.success(advertResponse)
+            } else {
+                val errorBody = response.bodyAsText()
+                println("❌ Advert deletion failed: $errorBody")
+                Result.failure(Exception("Advert deletion failed: ${response.status} - $errorBody"))
+            }
+        } catch (e: Exception) {
+            println("💥 Advert deletion error: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getCategories(): Result<List<StrapiCategoryOption>> {
         return try {
             val response = client.get("$baseUrl/categories") {
                 contentType(ContentType.Application.Json)
                 header("ngrok-skip-browser-warning", "true")
             }
             val categoriesResponse = response.body<StrapiCategoriesResponse>()
-            val categoryNames = categoriesResponse.data.map { it.name }.distinct()
-            Result.success(categoryNames)
+            val categoryOptions = categoriesResponse.data.map { 
+                StrapiCategoryOption(
+                    id = it.id,
+                    name = it.name,
+                    slug = it.slug
+                )
+            }
+            Result.success(categoryOptions)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Link adverts to profile
+     */
+    suspend fun updateProfileAdverts(
+        profileDocumentId: String,
+        advertIds: List<String>,
+        token: String
+    ): Result<Boolean> {
+        return try {
+            println("🔗 Linking adverts ${advertIds.joinToString()} to profile $profileDocumentId...")
+            
+            val requestBody = ProfileAdvertUpdateRequest(
+                data = ProfileAdvertUpdateData(
+                    adverts = advertIds
+                )
+            )
+            
+            val response = client.put("$baseUrl/profiles/$profileDocumentId") {
+                header("Authorization", "Bearer $token")
+                header("ngrok-skip-browser-warning", "true")
+                contentType(ContentType.Application.Json)
+                setBody(requestBody)
+            }
+            
+            println("🔄 Profile adverts update response status: ${response.status}")
+            
+            if (response.status.isSuccess()) {
+                println("✅ Profile adverts updated successfully")
+                Result.success(true)
+            } else {
+                val errorBody = response.bodyAsText()
+                println("❌ Profile adverts update failed: $errorBody")
+                Result.failure(Exception("Profile adverts update failed: ${response.status} - $errorBody"))
+            }
+            
+        } catch (e: Exception) {
+            println("💥 Profile adverts update error: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -140,4 +239,23 @@ class AdvertApiService {
 data class StrapiCategoriesResponse(
     @kotlinx.serialization.SerialName("data")
     val data: List<StrapiCategory>
+)
+
+@Serializable
+data class StrapiCategoryOption(
+    val id: Int,
+    val name: String,
+    val slug: String
+)
+
+@Serializable
+data class ProfileAdvertUpdateRequest(
+    @SerialName("data")
+    val data: ProfileAdvertUpdateData
+)
+
+@Serializable
+data class ProfileAdvertUpdateData(
+    @SerialName("adverts")
+    val adverts: List<String>
 )

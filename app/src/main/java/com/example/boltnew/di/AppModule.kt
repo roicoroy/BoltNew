@@ -17,6 +17,8 @@ import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.AuthRepositoryImpl
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.data.repository.ProfileRepositoryImpl
+import com.example.boltnew.data.repository.UserAdvertRepository
+import com.example.boltnew.data.repository.UserAdvertRepositoryImpl
 import com.example.boltnew.presentation.viewmodel.AdvertViewModel
 import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
@@ -48,10 +50,11 @@ val appModule = module {
     single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<AddressRepository> { AddressRepositoryImpl(get(), get(), get()) }
+    single<UserAdvertRepository> { UserAdvertRepositoryImpl(get(), get(), get(), get()) }
     
     // ViewModels
     viewModel { AdvertViewModel(get(), get()) }
     viewModel { AdvertDetailViewModel(get()) }
-    viewModel { ProfileViewModel(get(), get(), get()) }
+    viewModel { ProfileViewModel(get(), get(), get(), get()) }
     viewModel { AuthViewModel(get()) }
 }
