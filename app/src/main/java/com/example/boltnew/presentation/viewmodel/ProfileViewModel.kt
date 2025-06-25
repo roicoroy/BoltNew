@@ -6,7 +6,9 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.repository.AddressRepository
 import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.data.repository.ProfileRepositoryImpl
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 class ProfileViewModel(
     private val authRepository: AuthRepository,
-    private val profileRepository: ProfileRepository
+    private val profileRepository: ProfileRepository,
+    private val addressRepository: AddressRepository
 ) : ViewModel() {
     
     private val _profileState = MutableStateFlow<RequestState<Profile>>(RequestState.Idle)
@@ -160,6 +163,176 @@ class ProfileViewModel(
         }
     }
     
+    // Address CRUD operations
+    fun createAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAddressLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("🏠 Creating new address for profile: ${currentProfile.documentId}")
+                
+                val result = addressRepository.createAddress(address, currentProfile.documentId)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Address created successfully!",
+                        showAddressModal = false
+                    )
+                    
+                    println("✅ Address created successfully")
+                    
+                    // Reload profile to show new address
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Failed to create address: $error"
+                    )
+                    println("❌ Address creation failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAddressLoading = false,
+                    operationMessage = "Failed to create address: ${e.message}"
+                )
+                println("💥 Address creation error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    fun updateAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAddressLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("🔄 Updating address: ${address.documentId}")
+                
+                val result = addressRepository.updateAddress(address, currentProfile.documentId)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Address updated successfully!",
+                        showAddressModal = false,
+                        editingAddress = null
+                    )
+                    
+                    println("✅ Address updated successfully")
+                    
+                    // Reload profile to show updated address
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Failed to update address: $error"
+                    )
+                    println("❌ Address update failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAddressLoading = false,
+                    operationMessage = "Failed to update address: ${e.message}"
+                )
+                println("💥 Address update error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    fun deleteAddress(address: Address) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isAddressLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("🗑️ Deleting address: ${address.documentId}")
+                
+                val result = addressRepository.deleteAddress(address.documentId, currentProfile.documentId)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Address deleted successfully!"
+                    )
+                    
+                    println("✅ Address deleted successfully")
+                    
+                    // Reload profile to remove deleted address
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isAddressLoading = false,
+                        operationMessage = "Failed to delete address: $error"
+                    )
+                    println("❌ Address deletion failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isAddressLoading = false,
+                    operationMessage = "Failed to delete address: ${e.message}"
+                )
+                println("💥 Address deletion error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    // UI state management
+    fun showAddAddressModal() {
+        _uiState.value = _uiState.value.copy(
+            showAddressModal = true,
+            editingAddress = null
+        )
+    }
+    
+    fun showEditAddressModal(address: Address) {
+        _uiState.value = _uiState.value.copy(
+            showAddressModal = true,
+            editingAddress = address
+        )
+    }
+    
+    fun hideAddressModal() {
+        _uiState.value = _uiState.value.copy(
+            showAddressModal = false,
+            editingAddress = null
+        )
+    }
+    
     fun refreshProfile() {
         println("Refreshing profile...")
         loadUserProfile()
@@ -178,5 +351,8 @@ class ProfileViewModel(
 
 data class ProfileUiState(
     val operationMessage: String? = null,
-    val isUpdatingAvatar: Boolean = false
+    val isUpdatingAvatar: Boolean = false,
+    val isAddressLoading: Boolean = false,
+    val showAddressModal: Boolean = false,
+    val editingAddress: Address? = null
 )

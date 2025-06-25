@@ -33,6 +33,7 @@ import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.UserAdvert
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
+import com.example.boltnew.ui.components.AddressFormModal
 import com.example.boltnew.utils.CameraUtils
 import com.example.boltnew.utils.DisplayResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -244,7 +245,11 @@ fun ProfileScreen(
                                 permissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
-                        isUpdatingAvatar = uiState.isUpdatingAvatar
+                        onAddAddress = { viewModel.showAddAddressModal() },
+                        onEditAddress = { address -> viewModel.showEditAddressModal(address) },
+                        onDeleteAddress = { address -> viewModel.deleteAddress(address) },
+                        isUpdatingAvatar = uiState.isUpdatingAvatar,
+                        isAddressLoading = uiState.isAddressLoading
                     )
                 }
             )
@@ -259,6 +264,21 @@ fun ProfileScreen(
             )
         }
     }
+    
+    // Address Form Modal
+    AddressFormModal(
+        isVisible = uiState.showAddressModal,
+        address = uiState.editingAddress,
+        isLoading = uiState.isAddressLoading,
+        onDismiss = { viewModel.hideAddressModal() },
+        onSave = { address ->
+            if (uiState.editingAddress != null) {
+                viewModel.updateAddress(address)
+            } else {
+                viewModel.createAddress(address)
+            }
+        }
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -266,7 +286,11 @@ fun ProfileScreen(
 private fun ProfileContent(
     profile: Profile,
     onAvatarClick: () -> Unit,
-    isUpdatingAvatar: Boolean = false
+    onAddAddress: () -> Unit,
+    onEditAddress: (Address) -> Unit,
+    onDeleteAddress: (Address) -> Unit,
+    isUpdatingAvatar: Boolean = false,
+    isAddressLoading: Boolean = false
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -342,10 +366,13 @@ private fun ProfileContent(
         }
         
         // Addresses Section
-        if (profile.addresses.isNotEmpty()) {
-            item {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -361,10 +388,75 @@ private fun ProfileContent(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                
+                // Add Address Button
+                IconButton(
+                    onClick = onAddAddress,
+                    enabled = !isAddressLoading
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Address",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            
+        }
+        
+        if (profile.addresses.isNotEmpty()) {
             items(profile.addresses) { address ->
-                AddressCard(address = address)
+                AddressCard(
+                    address = address,
+                    onEdit = { onEditAddress(address) },
+                    onDelete = { onDeleteAddress(address) },
+                    isLoading = isAddressLoading
+                )
+            }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No Addresses Yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Add your first address to get started with deliveries and billing.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = onAddAddress,
+                            enabled = !isAddressLoading
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Add Address")
+                        }
+                    }
+                }
             }
         }
         
@@ -599,7 +691,12 @@ private fun ProfileInfoCard(profile: Profile) {
 }
 
 @Composable
-private fun AddressCard(address: Address) {
+private fun AddressCard(
+    address: Address,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    isLoading: Boolean = false
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -609,20 +706,52 @@ private fun AddressCard(address: Address) {
             modifier = Modifier.padding(16.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = "Address",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = address.fullName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Address",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = address.fullName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                Row {
+                    IconButton(
+                        onClick = onEdit,
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Address",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onDelete,
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Address",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
