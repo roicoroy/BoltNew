@@ -111,7 +111,7 @@ class UserAdvertRepositoryImpl(
                 println("🔗 Advert linked to profile successfully")
             }
             
-            // Convert to domain model
+            // Convert simplified response to domain model
             val domainAdvert = UserAdvert(
                 id = createdAdvert.data.id,
                 documentId = createdAdvert.data.documentId,
@@ -189,7 +189,7 @@ class UserAdvertRepositoryImpl(
             val updatedAdvert = updateResult.getOrThrow()
             println("✅ Advert updated successfully")
             
-            // Convert to domain model
+            // Convert simplified response to domain model
             val domainAdvert = UserAdvert(
                 id = updatedAdvert.data.id,
                 documentId = updatedAdvert.data.documentId,

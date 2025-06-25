@@ -166,57 +166,33 @@ class AdvertRepositoryImpl(
             val apiResult = apiService.createAdvert(createRequest, token.toString())
 
             if (apiResult.isSuccess) {
-                val createdAdvert = apiResult.getOrNull()?.data
-                createdAdvert?.let {
-                    // Convert AdvertCreateData to domain model
-                    val domainAdvert = Advert(
-                        id = it.id,
-                        documentId = it.documentId,
-                        title = it.title,
-                        description = it.description,
-                        slug = it.slug,
-                        createdAt = LocalDateTime.parse(it.createdAt.replace("Z", "")),
-                        updatedAt = LocalDateTime.parse(it.updatedAt.replace("Z", "")),
-                        publishedAt = LocalDateTime.parse(it.publishedAt.replace("Z", "")),
-                        cover = it.cover?.let { cover ->
-                            AdvertCover(
-                                id = cover.id,
-                                documentId = cover.documentId,
-                                name = cover.name,
-                                alternativeText = cover.alternativeText,
-                                caption = cover.caption,
-                                width = cover.width,
-                                height = cover.height,
-                                url = cover.url,
-                                formats = null // Simplified for now
-                            )
-                        },
-                        category = it.category?.let { category ->
-                            AdvertCategory(
-                                id = category.id,
-                                documentId = category.documentId,
-                                name = category.name,
-                                slug = category.slug,
-                                description = category.description,
-                                createdAt = LocalDateTime.now(),
-                                updatedAt = LocalDateTime.now(),
-                                publishedAt = LocalDateTime.now()
-                            )
-                        } ?: AdvertCategory(
-                            id = 0,
-                            documentId = "",
-                            name = "Unknown",
-                            slug = "unknown",
-                            description = "",
-                            createdAt = LocalDateTime.now(),
-                            updatedAt = LocalDateTime.now(),
-                            publishedAt = LocalDateTime.now()
-                        )
+                val createdAdvert = apiResult.getOrThrow().data
+                
+                // Convert simplified AdvertCreateData to domain model
+                val domainAdvert = Advert(
+                    id = createdAdvert.id,
+                    documentId = createdAdvert.documentId,
+                    title = createdAdvert.title,
+                    description = createdAdvert.description,
+                    slug = createdAdvert.slug,
+                    createdAt = LocalDateTime.parse(createdAdvert.createdAt.replace("Z", "")),
+                    updatedAt = LocalDateTime.parse(createdAdvert.updatedAt.replace("Z", "")),
+                    publishedAt = LocalDateTime.parse(createdAdvert.publishedAt.replace("Z", "")),
+                    cover = null, // Cover not included in create response
+                    category = AdvertCategory(
+                        id = 0,
+                        documentId = "",
+                        name = "Unknown",
+                        slug = "unknown",
+                        description = "",
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
+                        publishedAt = LocalDateTime.now()
                     )
-                    
-                    // Cache in local database
-                    advertDao.insertAdvert(domainAdvert.toEntity())
-                }
+                )
+                
+                // Cache in local database
+                advertDao.insertAdvert(domainAdvert.toEntity())
             } else {
                 // If API fails, still save locally
                 advertDao.insertAdvert(advert.toEntity())
@@ -242,57 +218,33 @@ class AdvertRepositoryImpl(
             val apiResult = apiService.updateAdvert(advert.id, updateRequest, token.toString())
 
             if (apiResult.isSuccess) {
-                val updatedAdvert = apiResult.getOrNull()?.data
-                updatedAdvert?.let {
-                    // Convert AdvertCreateData to domain model
-                    val domainAdvert = Advert(
-                        id = it.id,
-                        documentId = it.documentId,
-                        title = it.title,
-                        description = it.description,
-                        slug = it.slug,
-                        createdAt = LocalDateTime.parse(it.createdAt.replace("Z", "")),
-                        updatedAt = LocalDateTime.parse(it.updatedAt.replace("Z", "")),
-                        publishedAt = LocalDateTime.parse(it.publishedAt.replace("Z", "")),
-                        cover = it.cover?.let { cover ->
-                            AdvertCover(
-                                id = cover.id,
-                                documentId = cover.documentId,
-                                name = cover.name,
-                                alternativeText = cover.alternativeText,
-                                caption = cover.caption,
-                                width = cover.width,
-                                height = cover.height,
-                                url = cover.url,
-                                formats = null // Simplified for now
-                            )
-                        },
-                        category = it.category?.let { category ->
-                            AdvertCategory(
-                                id = category.id,
-                                documentId = category.documentId,
-                                name = category.name,
-                                slug = category.slug,
-                                description = category.description,
-                                createdAt = LocalDateTime.now(),
-                                updatedAt = LocalDateTime.now(),
-                                publishedAt = LocalDateTime.now()
-                            )
-                        } ?: AdvertCategory(
-                            id = 0,
-                            documentId = "",
-                            name = "Unknown",
-                            slug = "unknown",
-                            description = "",
-                            createdAt = LocalDateTime.now(),
-                            updatedAt = LocalDateTime.now(),
-                            publishedAt = LocalDateTime.now()
-                        )
+                val updatedAdvert = apiResult.getOrThrow().data
+                
+                // Convert simplified AdvertCreateData to domain model
+                val domainAdvert = Advert(
+                    id = updatedAdvert.id,
+                    documentId = updatedAdvert.documentId,
+                    title = updatedAdvert.title,
+                    description = updatedAdvert.description,
+                    slug = updatedAdvert.slug,
+                    createdAt = LocalDateTime.parse(updatedAdvert.createdAt.replace("Z", "")),
+                    updatedAt = LocalDateTime.parse(updatedAdvert.updatedAt.replace("Z", "")),
+                    publishedAt = LocalDateTime.parse(updatedAdvert.publishedAt.replace("Z", "")),
+                    cover = null, // Cover not included in update response
+                    category = AdvertCategory(
+                        id = 0,
+                        documentId = "",
+                        name = "Unknown",
+                        slug = "unknown",
+                        description = "",
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
+                        publishedAt = LocalDateTime.now()
                     )
-                    
-                    // Update local database
-                    advertDao.updateAdvert(domainAdvert.toEntity())
-                }
+                )
+                
+                // Update local database
+                advertDao.updateAdvert(domainAdvert.toEntity())
             } else {
                 // If API fails, still update locally
                 advertDao.updateAdvert(advert.toEntity())
@@ -308,7 +260,6 @@ class AdvertRepositoryImpl(
         try {
             // Delete via API first
             val token = tokenManager.getToken()
-
             val apiResult = apiService.deleteAdvert(advert.id, token.toString())
 
             if (apiResult.isSuccess) {
@@ -346,7 +297,6 @@ class AdvertRepositoryImpl(
         }
 
         // Only use sample data if no API data and no local data
-
     }
 
     // New method to refresh data from API

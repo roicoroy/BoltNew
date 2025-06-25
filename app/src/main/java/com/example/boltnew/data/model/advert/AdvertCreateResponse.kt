@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AdvertCreateResponse(
     @SerialName("data")
-    val data: AdvertCreateData = AdvertCreateData(),
+    val data: AdvertCreateData,
     @SerialName("meta")
     val meta: AdvertCreateMeta = AdvertCreateMeta()
 )
@@ -14,59 +14,21 @@ data class AdvertCreateResponse(
 @Serializable
 data class AdvertCreateData(
     @SerialName("id")
-    val id: Int = 0,
+    val id: Int,
     @SerialName("documentId")
-    val documentId: String = "",
+    val documentId: String,
     @SerialName("title")
-    val title: String = "",
+    val title: String,
     @SerialName("description")
-    val description: String = "",
+    val description: String,
     @SerialName("slug")
-    val slug: String = "",
+    val slug: String,
     @SerialName("createdAt")
-    val createdAt: String = "",
+    val createdAt: String,
     @SerialName("updatedAt")
-    val updatedAt: String = "",
+    val updatedAt: String,
     @SerialName("publishedAt")
-    val publishedAt: String = "",
-    @SerialName("cover")
-    val cover: AdvertCreateCover? = null,
-    @SerialName("category")
-    val category: AdvertCreateCategory? = null
-)
-
-@Serializable
-data class AdvertCreateCover(
-    @SerialName("id")
-    val id: Int = 0,
-    @SerialName("documentId")
-    val documentId: String = "",
-    @SerialName("name")
-    val name: String = "",
-    @SerialName("url")
-    val url: String = "",
-    @SerialName("alternativeText")
-    val alternativeText: String? = null,
-    @SerialName("caption")
-    val caption: String? = null,
-    @SerialName("width")
-    val width: Int = 0,
-    @SerialName("height")
-    val height: Int = 0
-)
-
-@Serializable
-data class AdvertCreateCategory(
-    @SerialName("id")
-    val id: Int = 0,
-    @SerialName("documentId")
-    val documentId: String = "",
-    @SerialName("name")
-    val name: String = "",
-    @SerialName("slug")
-    val slug: String = "",
-    @SerialName("description")
-    val description: String = ""
+    val publishedAt: String
 )
 
 @Serializable
