@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -16,24 +17,37 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.boltnew.presentation.viewmodel.AuthViewModel
 import com.example.boltnew.ui.screens.HomeScreen
 import com.example.boltnew.ui.screens.AdvertDetailScreen
 import com.example.boltnew.ui.screens.ProfileScreen
+import com.example.boltnew.ui.screens.auth.LoginScreen
+import com.example.boltnew.ui.screens.auth.RegisterScreen
+import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigation(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    authViewModel: AuthViewModel = koinViewModel()
 ) {
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    
+    // Determine start destination based on auth state
+    val startDestination = if (isLoggedIn) "home" else "login"
+    
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            // Only show bottom navigation for authenticated main screens
+            if (isLoggedIn) {
+                BottomNavigationBar(navController = navController)
+            }
         }
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = startDestination,
             enterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { fullWidth -> fullWidth },
@@ -59,6 +73,34 @@ fun AppNavigation(
                 ) + fadeOut(animationSpec = tween(300))
             }
         ) {
+            // Authentication Screens
+            composable("login") {
+                LoginScreen(
+                    onLoginSuccess = {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
+                    onNavigateToRegister = {
+                        navController.navigate("register")
+                    }
+                )
+            }
+            
+            composable("register") {
+                RegisterScreen(
+                    onRegisterSuccess = {
+                        navController.navigate("home") {
+                            popUpTo("register") { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            
+            // Main App Screens (Authenticated)
             composable("home") {
                 HomeScreen(
                     onAdvertClick = { advertId ->
@@ -71,6 +113,12 @@ fun AppNavigation(
                 ProfileScreen(
                     onBackClick = {
                         navController.popBackStack()
+                    },
+                    onLogout = {
+                        authViewModel.logout()
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }

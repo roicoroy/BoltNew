@@ -43,6 +43,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProfileScreen(
     onBackClick: () -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
@@ -91,6 +92,16 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    // Logout Button
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
                 },
