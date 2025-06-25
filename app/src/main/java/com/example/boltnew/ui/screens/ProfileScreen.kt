@@ -12,8 +12,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +43,7 @@ import java.io.File
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun ProfileScreen(
     onBackClick: () -> Unit,
@@ -50,6 +54,23 @@ fun ProfileScreen(
     val profileState by viewModel.profileState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    
+    // Pull-to-refresh state
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.refreshProfile()
+        }
+    )
+    
+    // Update refresh state based on profile loading
+    LaunchedEffect(profileState) {
+        if (profileState !is com.example.boltnew.utils.RequestState.Loading) {
+            isRefreshing = false
+        }
+    }
     
     // Camera permission
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
@@ -86,7 +107,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = { Text("My Profile") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -96,6 +117,19 @@ fun ProfileScreen(
                     }
                 },
                 actions = {
+                    // Refresh Button
+                    IconButton(
+                        onClick = { 
+                            isRefreshing = true
+                            viewModel.refreshProfile() 
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     // Logout Button
                     IconButton(onClick = onLogout) {
                         Icon(
@@ -123,70 +157,107 @@ fun ProfileScreen(
             }
         }
     ) { paddingValues ->
-        // Content
-        profileState.DisplayResult(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            onLoading = {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Loading profile...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            onError = { errorMessage ->
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(paddingValues)
+                .pullRefresh(pullRefreshState)
+        ) {
+            // Content
+            profileState.DisplayResult(
+                modifier = Modifier.fillMaxSize(),
+                onLoading = {
+                    if (!isRefreshing) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            OutlinedButton(onClick = onBackClick) {
-                                Text("Go Back")
-                            }
-                            Button(onClick = { viewModel.retryLoadProfile() }) {
-                                Text("Retry")
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Loading your profile...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
+                },
+                onError = { errorMessage ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Error",
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Unable to load profile",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(onClick = onBackClick) {
+                                    Text("Go Back")
+                                }
+                                Button(onClick = { viewModel.retryLoadProfile() }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+                },
+                onSuccess = { profile ->
+                    ProfileContent(
+                        profile = profile,
+                        onAvatarClick = {
+                            if (cameraPermissionState.status.isGranted) {
+                                capturedImageUri = CameraUtils.createImageUri(context)
+                                cameraLauncher.launch(capturedImageUri!!)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                        isUpdatingAvatar = uiState.isUpdatingAvatar
+                    )
                 }
-            },
-            onSuccess = { profile ->
-                ProfileContent(
-                    profile = profile,
-                    onAvatarClick = {
-                        if (cameraPermissionState.status.isGranted) {
-                            capturedImageUri = CameraUtils.createImageUri(context)
-                            cameraLauncher.launch(capturedImageUri!!)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
-                )
-            }
-        )
+            )
+            
+            // Pull refresh indicator
+            PullRefreshIndicator(
+                refreshing = isRefreshing,
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
@@ -194,7 +265,8 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     profile: Profile,
-    onAvatarClick: () -> Unit
+    onAvatarClick: () -> Unit,
+    isUpdatingAvatar: Boolean = false
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -210,7 +282,8 @@ private fun ProfileContent(
             ) {
                 AvatarSection(
                     avatarUrl = profile.avatar?.url,
-                    onClick = onAvatarClick
+                    onClick = onAvatarClick,
+                    isUpdating = isUpdatingAvatar
                 )
 
                 Text(
@@ -225,7 +298,7 @@ private fun ProfileContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Account status instead of role
+                // Account status
                 Surface(
                     color = if (profile.isConfirmed) {
                         MaterialTheme.colorScheme.primaryContainer
@@ -234,16 +307,31 @@ private fun ProfileContent(
                     },
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = if (profile.isConfirmed) "Verified Account" else "Pending Verification",
+                    Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (profile.isConfirmed) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onErrorContainer
-                        }
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (profile.isConfirmed) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (profile.isConfirmed) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (profile.isConfirmed) "Verified Account" else "Pending Verification",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (profile.isConfirmed) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -256,12 +344,23 @@ private fun ProfileContent(
         // Addresses Section
         if (profile.addresses.isNotEmpty()) {
             item {
-                Text(
-                    text = "Addresses",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Addresses (${profile.addresses.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             
             items(profile.addresses) { address ->
@@ -272,16 +371,60 @@ private fun ProfileContent(
         // User Adverts Section
         if (profile.userAdverts.isNotEmpty()) {
             item {
-                Text(
-                    text = "My Adverts",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Article,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "My Adverts (${profile.userAdverts.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             
             items(profile.userAdverts) { advert ->
                 UserAdvertCard(advert = advert)
+            }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Article,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No Adverts Yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "You haven't created any adverts yet. Start by creating your first advert!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
         
@@ -295,7 +438,8 @@ private fun ProfileContent(
 @Composable
 private fun AvatarSection(
     avatarUrl: String?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isUpdating: Boolean = false
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -310,26 +454,43 @@ private fun AvatarSection(
                 shape = CircleShape,
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                if (avatarUrl != null) {
-                    AsyncImage(
-                        model = if (avatarUrl.startsWith("http")) avatarUrl else File(avatarUrl),
-                        contentDescription = "Profile Avatar",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Default Avatar",
-                            modifier = Modifier.size(60.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (avatarUrl != null) {
+                        AsyncImage(
+                            model = if (avatarUrl.startsWith("http")) avatarUrl else File(avatarUrl),
+                            contentDescription = "Profile Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Default Avatar",
+                                modifier = Modifier.size(60.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    
+                    // Loading overlay
+                    if (isUpdating) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -347,7 +508,7 @@ private fun AvatarSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Take Photo",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -358,7 +519,7 @@ private fun AvatarSection(
         
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Tap to change photo",
+            text = if (isUpdating) "Updating..." else "Tap to change photo",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -376,12 +537,23 @@ private fun ProfileInfoCard(profile: Profile) {
         Column(
             modifier = Modifier.padding(20.dp)
         ) {
-            Text(
-                text = "Profile Information",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Profile Information",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             
             Spacer(modifier = Modifier.height(20.dp))
             
@@ -403,14 +575,6 @@ private fun ProfileInfoCard(profile: Profile) {
                 value = profile.dateOfBirthFormatted?.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")) ?: "Not set"
             )
             
-            if (profile.fullAddress.isNotBlank()) {
-                ProfileInfoItem(
-                    icon = Icons.Default.Home,
-                    label = "Primary Address",
-                    value = profile.fullAddress
-                )
-            }
-            
             ProfileInfoItem(
                 icon = Icons.Default.AccountCircle,
                 label = "Account Status",
@@ -418,10 +582,18 @@ private fun ProfileInfoCard(profile: Profile) {
             )
             
             ProfileInfoItem(
-                icon = Icons.Default.DateRange,
+                icon = Icons.Default.Security,
                 label = "Provider",
                 value = profile.provider.replaceFirstChar { it.uppercase() }
             )
+            
+            if (profile.addresses.isNotEmpty()) {
+                ProfileInfoItem(
+                    icon = Icons.Default.Home,
+                    label = "Primary Address",
+                    value = "${profile.addresses.first().city}, ${profile.addresses.first().country}"
+                )
+            }
         }
     }
 }
@@ -504,7 +676,7 @@ private fun UserAdvertCard(advert: UserAdvert) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = Icons.Default.Article,
                     contentDescription = "Advert",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
@@ -525,6 +697,21 @@ private fun UserAdvertCard(advert: UserAdvert) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2
             )
+            
+            if (advert.slug != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Slug: ${advert.slug}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
     }
 }

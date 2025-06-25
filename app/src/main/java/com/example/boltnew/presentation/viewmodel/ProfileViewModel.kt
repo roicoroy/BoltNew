@@ -7,6 +7,7 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.auth.profile.Profile
+import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.utils.ImageUtils
 import com.example.boltnew.utils.RequestState
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
 class ProfileViewModel(
+    private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
     
@@ -29,44 +31,79 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
     init {
-        loadProfile()
+        loadUserProfile()
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun loadProfile() {
+    fun loadUserProfile() {
         viewModelScope.launch {
-            profileRepository.getProfile()
-                .onStart { 
-                    _profileState.value = RequestState.Loading 
-                }
-                .catch { exception ->
-                    _profileState.value = RequestState.Error("Failed to load profile: ${exception.message}")
-                }
-                .collect { profile ->
-                    _profileState.value = if (profile != null) {
-                        RequestState.Success(profile)
-                    } else {
-                        RequestState.Error("Profile not found")
+            try {
+                _profileState.value = RequestState.Loading
+                
+                // First try to get profile from auth repository (Strapi API)
+                val authResult = authRepository.getUserProfile()
+                
+                if (authResult.isSuccess) {
+                    val profile = authResult.getOrThrow()
+                    _profileState.value = RequestState.Success(profile)
+                    
+                    // Cache the profile locally
+                    try {
+                        profileRepository.insertProfile(profile)
+                    } catch (e: Exception) {
+                        // Ignore cache errors, we have the data from API
                     }
+                } else {
+                    // Fallback to local profile repository
+                    profileRepository.getProfile()
+                        .onStart { 
+                            if (_profileState.value !is RequestState.Loading) {
+                                _profileState.value = RequestState.Loading
+                            }
+                        }
+                        .catch { exception ->
+                            _profileState.value = RequestState.Error("Failed to load profile: ${exception.message}")
+                        }
+                        .collect { profile ->
+                            _profileState.value = if (profile != null) {
+                                RequestState.Success(profile)
+                            } else {
+                                RequestState.Error("Profile not found. Please ensure you're logged in.")
+                            }
+                        }
                 }
+            } catch (e: Exception) {
+                _profileState.value = RequestState.Error("Failed to load profile: ${e.message}")
+            }
         }
     }
     
     fun updateAvatar(context: Context, imageUri: Uri) {
         viewModelScope.launch {
             try {
+                _uiState.value = _uiState.value.copy(isUpdatingAvatar = true)
+                
                 val savedPath = ImageUtils.saveImageToInternalStorage(context, imageUri)
                 profileRepository.updateAvatar(savedPath, savedPath)
                 
                 _uiState.value = _uiState.value.copy(
+                    isUpdatingAvatar = false,
                     operationMessage = "Avatar updated successfully"
                 )
+                
+                // Reload profile to show updated avatar
+                loadUserProfile()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
+                    isUpdatingAvatar = false,
                     operationMessage = "Failed to update avatar: ${e.message}"
                 )
             }
         }
+    }
+    
+    fun refreshProfile() {
+        loadUserProfile()
     }
     
     fun clearOperationMessage() {
@@ -75,10 +112,11 @@ class ProfileViewModel(
     
     @RequiresApi(Build.VERSION_CODES.O)
     fun retryLoadProfile() {
-        loadProfile()
+        loadUserProfile()
     }
 }
 
 data class ProfileUiState(
-    val operationMessage: String? = null
+    val operationMessage: String? = null,
+    val isUpdatingAvatar: Boolean = false
 )

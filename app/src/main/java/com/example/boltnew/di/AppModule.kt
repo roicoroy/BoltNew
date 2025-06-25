@@ -45,6 +45,6 @@ val appModule = module {
     // ViewModels
     viewModel { HomeViewModel(get(), get()) }
     viewModel { AdvertDetailViewModel(get()) }
-    viewModel { ProfileViewModel(get()) }
+    viewModel { ProfileViewModel(get(), get()) }
     viewModel { AuthViewModel(get()) }
 }
