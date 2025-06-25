@@ -11,6 +11,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class AuthApiService {
     
@@ -28,7 +30,6 @@ class AuthApiService {
         return try {
             val response = client.post("$baseUrl/auth/local") {
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
                 setBody(request)
             }
             Result.success(response.body<LoginResponse>())
@@ -41,7 +42,6 @@ class AuthApiService {
         return try {
             val response = client.post("$baseUrl/auth/local/register") {
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
                 setBody(request)
             }
             Result.success(response.body<RegisterResponse>())
@@ -55,7 +55,6 @@ class AuthApiService {
             val response = client.get("$baseUrl/users/me") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 parameter("populate", "*")
             }
             Result.success(response.body<StrapiUser>())
@@ -72,13 +71,10 @@ class AuthApiService {
             val userResponse = client.get("$baseUrl/users/me") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 parameter("populate", "profile")
             }
-            
             val userResponseText = userResponse.bodyAsText()
             println("📥 User Response: $userResponseText")
-            
             // Parse user response to get profile document ID
             val userJson = json.parseToJsonElement(userResponseText)
             val profileDocumentId = try {
@@ -86,14 +82,10 @@ class AuthApiService {
             } catch (e: Exception) {
                 null
             }
-            
             if (profileDocumentId == null) {
-                println("❌ No profile document ID found for user")
                 return Result.failure(Exception("User has no associated profile. Please create a profile in Strapi first."))
             }
-            
             println("🎯 Found profile document ID: $profileDocumentId")
-            
             // Now fetch the complete profile using the specific endpoint
             val profileResponse = client.get("$baseUrl/profiles/$profileDocumentId") {
                 contentType(ContentType.Application.Json)
@@ -108,7 +100,6 @@ class AuthApiService {
             
             // Check if response is empty
             if (rawResponse.isBlank()) {
-                println("❌ Empty response from profile API")
                 return Result.failure(Exception("Empty response from profile API"))
             }
             
@@ -176,7 +167,6 @@ class AuthApiService {
             val response = client.post("$baseUrl/auth/refresh") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.body<LoginResponse>())
         } catch (e: Exception) {
@@ -189,7 +179,6 @@ class AuthApiService {
             val response = client.post("$baseUrl/auth/logout") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
             }
             Result.success(response.status.isSuccess())
         } catch (e: Exception) {
@@ -241,7 +230,6 @@ class AuthApiService {
             val response = client.post("$baseUrl/auth/change-password") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 setBody(mapOf(
                     "currentPassword" to currentPassword,
                     "password" to password,
@@ -257,9 +245,7 @@ class AuthApiService {
     // Health check for auth endpoints
     suspend fun healthCheck(): Result<Boolean> {
         return try {
-            val response = client.get("$baseUrl/auth/local") {
-                header("ngrok-skip-browser-warning", "true")
-            }
+            val response = client.get("$baseUrl/auth/local")
             Result.success(response.status == HttpStatusCode.MethodNotAllowed || response.status.isSuccess())
         } catch (e: Exception) {
             Result.failure(e)

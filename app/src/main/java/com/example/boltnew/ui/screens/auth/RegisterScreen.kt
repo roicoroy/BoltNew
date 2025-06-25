@@ -44,10 +44,10 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState(initial = false)
     
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("tesUSer") }
+    var email by remember { mutableStateOf("test1@email.com") }
+    var password by remember { mutableStateOf("Rwbento123!") }
+    var confirmPassword by remember { mutableStateOf("Rwbento123!") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     
