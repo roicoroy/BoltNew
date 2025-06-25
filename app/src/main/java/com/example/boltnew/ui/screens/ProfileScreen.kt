@@ -347,7 +347,7 @@ private fun AvatarSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Take Photo",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -504,7 +504,7 @@ private fun UserAdvertCard(advert: UserAdvert) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = Icons.Default.Article,
                     contentDescription = "Advert",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
