@@ -42,7 +42,7 @@ fun LoginScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState(initial = false)
     
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

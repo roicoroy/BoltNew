@@ -42,7 +42,7 @@ fun RegisterScreen(
 ) {
     val authState by viewModel.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState(initial = false)
     
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }

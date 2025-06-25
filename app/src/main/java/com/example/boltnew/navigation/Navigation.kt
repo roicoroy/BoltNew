@@ -33,7 +33,7 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = koinViewModel()
 ) {
-    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState(initial = false)
     
     // Determine start destination based on auth state
     val startDestination = if (isLoggedIn) "home" else "login"
