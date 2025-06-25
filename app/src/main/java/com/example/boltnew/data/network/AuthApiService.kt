@@ -47,7 +47,7 @@ class AuthApiService {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
-                parameter("populate", "*")
+                parameter("populate", "profile,role")
             }
             Result.success(response.body<StrapiUser>())
         } catch (e: Exception) {
@@ -57,14 +57,57 @@ class AuthApiService {
     
     suspend fun getUserProfile(token: String): Result<StrapiProfile> {
         return try {
+            // First, let's try the users/me endpoint with full population
             val response = client.get("$baseUrl/users/me") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
-                parameter("populate", "profile,profile.avatar,profile.addresses,profile.adverts")
+                // Try different population strategies for Strapi 5
+                parameter("populate[profile][populate][0]", "avatar")
+                parameter("populate[profile][populate][1]", "addresses")
+                parameter("populate[profile][populate][2]", "adverts")
             }
-            Result.success(response.body<StrapiProfile>())
+            
+            // Log the raw response for debugging
+            val rawResponse = response.body<String>()
+            println("Raw Profile Response: $rawResponse")
+            
+            // Try to parse as StrapiProfile
+            val profileResponse = response.body<StrapiProfile>()
+            Result.success(profileResponse)
         } catch (e: Exception) {
+            println("Profile API Error: ${e.message}")
+            // Fallback: try simpler population
+            try {
+                val response = client.get("$baseUrl/users/me") {
+                    contentType(ContentType.Application.Json)
+                    header("Authorization", "Bearer $token")
+                    header("ngrok-skip-browser-warning", "true")
+                    parameter("populate", "*")
+                }
+                Result.success(response.body<StrapiProfile>())
+            } catch (fallbackError: Exception) {
+                println("Fallback Profile API Error: ${fallbackError.message}")
+                Result.failure(fallbackError)
+            }
+        }
+    }
+    
+    // Alternative method to get profile data directly
+    suspend fun getProfileData(token: String): Result<Map<String, Any>> {
+        return try {
+            val response = client.get("$baseUrl/users/me") {
+                contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
+                header("ngrok-skip-browser-warning", "true")
+                parameter("populate", "deep")
+            }
+            
+            val rawData = response.body<Map<String, Any>>()
+            println("Raw Profile Data: $rawData")
+            Result.success(rawData)
+        } catch (e: Exception) {
+            println("Raw Profile Data Error: ${e.message}")
             Result.failure(e)
         }
     }

@@ -105,17 +105,35 @@ class AuthRepositoryImpl(
         return try {
             val token = tokenManager.getToken()
             if (token != null) {
+                println("Getting user profile with token: ${token.take(20)}...")
+                
+                // First, try to get raw data for debugging
+                val rawDataResult = authApiService.getProfileData(token)
+                if (rawDataResult.isSuccess) {
+                    println("Raw profile data received: ${rawDataResult.getOrNull()}")
+                }
+                
+                // Now try to get structured profile data
                 val result = authApiService.getUserProfile(token)
                 if (result.isSuccess) {
                     val strapiProfile = result.getOrThrow()
-                    Result.success(strapiProfile.toDomain())
+                    println("Strapi profile received: $strapiProfile")
+                    
+                    val domainProfile = strapiProfile.toDomain()
+                    println("Domain profile mapped: $domainProfile")
+                    
+                    Result.success(domainProfile)
                 } else {
-                    result.map { it.toDomain() }
+                    val error = result.exceptionOrNull()
+                    println("Profile API error: ${error?.message}")
+                    Result.failure(error ?: Exception("Unknown profile API error"))
                 }
             } else {
                 Result.failure(Exception("No authentication token available"))
             }
         } catch (e: Exception) {
+            println("Profile repository error: ${e.message}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }

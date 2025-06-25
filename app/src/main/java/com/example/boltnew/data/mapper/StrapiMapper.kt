@@ -29,6 +29,8 @@ private val zonedDateTimeFormatter = DateTimeFormatter.ISO_ZONED_DATE_TIME
 @RequiresApi(Build.VERSION_CODES.O)
 private fun parseDateTime(dateString: String): String {
     return try {
+        if (dateString.isBlank()) return ""
+        
         // Try parsing as ISO instant (with Z timezone) and convert to local string
         val instant = java.time.Instant.parse(dateString)
         LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC).toString()
@@ -69,6 +71,9 @@ private fun parseDate(dateString: String): String {
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun StrapiProfile.toDomain(): Profile {
+    println("Mapping StrapiProfile to Domain Profile")
+    println("StrapiProfile data: ${this.data}")
+    
     return Profile(
         id = data.id,
         documentId = data.documentId,
@@ -93,7 +98,9 @@ fun StrapiProfile.toDomain(): Profile {
             data.avatar.toDomain()
         } else null,
         userAdverts = data.adverts.map { it.toDomain() }
-    )
+    ).also {
+        println("Mapped Profile: $it")
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

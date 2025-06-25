@@ -39,22 +39,30 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 _profileState.value = RequestState.Loading
+                println("Loading user profile...")
                 
                 // First try to get profile from auth repository (Strapi API)
                 val authResult = authRepository.getUserProfile()
                 
                 if (authResult.isSuccess) {
                     val profile = authResult.getOrThrow()
+                    println("Profile loaded successfully from API: $profile")
                     _profileState.value = RequestState.Success(profile)
                     
                     // Cache the profile locally
                     try {
                         profileRepository.insertProfile(profile)
+                        println("Profile cached locally")
                     } catch (e: Exception) {
+                        println("Failed to cache profile: ${e.message}")
                         // Ignore cache errors, we have the data from API
                     }
                 } else {
+                    val apiError = authResult.exceptionOrNull()
+                    println("API failed: ${apiError?.message}")
+                    
                     // Fallback to local profile repository
+                    println("Falling back to local profile...")
                     profileRepository.getProfile()
                         .onStart { 
                             if (_profileState.value !is RequestState.Loading) {
@@ -62,17 +70,22 @@ class ProfileViewModel(
                             }
                         }
                         .catch { exception ->
+                            println("Local profile error: ${exception.message}")
                             _profileState.value = RequestState.Error("Failed to load profile: ${exception.message}")
                         }
                         .collect { profile ->
-                            _profileState.value = if (profile != null) {
-                                RequestState.Success(profile)
+                            if (profile != null) {
+                                println("Profile loaded from local cache: $profile")
+                                _profileState.value = RequestState.Success(profile)
                             } else {
-                                RequestState.Error("Profile not found. Please ensure you're logged in.")
+                                println("No profile found locally")
+                                _profileState.value = RequestState.Error("Profile not found. Please ensure you're logged in and have a complete profile.")
                             }
                         }
                 }
             } catch (e: Exception) {
+                println("Profile loading error: ${e.message}")
+                e.printStackTrace()
                 _profileState.value = RequestState.Error("Failed to load profile: ${e.message}")
             }
         }
@@ -103,6 +116,7 @@ class ProfileViewModel(
     }
     
     fun refreshProfile() {
+        println("Refreshing profile...")
         loadUserProfile()
     }
     
@@ -112,6 +126,7 @@ class ProfileViewModel(
     
     @RequiresApi(Build.VERSION_CODES.O)
     fun retryLoadProfile() {
+        println("Retrying profile load...")
         loadUserProfile()
     }
 }
