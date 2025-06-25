@@ -38,7 +38,7 @@ class UserAdvertRepositoryImpl(
             
             println("📝 Creating advert for profile: $profileDocumentId")
             
-            var coverId: Int? = null
+            var coverIdString: String? = null
             
             // Step 1: Upload cover image if provided
             if (coverImageUri != null) {
@@ -53,20 +53,22 @@ class UserAdvertRepositoryImpl(
                 val uploadedFile = uploadResponse.files.firstOrNull()
                     ?: return Result.failure(Exception("No file in upload response"))
                 
-                coverId = uploadedFile.id
-                println("📁 Cover image uploaded successfully with ID: $coverId")
+                coverIdString = uploadedFile.id.toString()
+                println("📁 Cover image uploaded successfully with ID: $coverIdString")
             }
             
-            // Step 2: Create advert
+            // Step 2: Create advert with category as array
             val createRequest = StrapiAdvertCreateRequest(
                 data = StrapiAdvertCreateData(
                     title = title,
                     description = description,
                     slug = slug,
-                    category = categoryId,
-                    cover = coverId
+                    category = listOf(categoryId.toString()), // Convert to array of strings
+                    cover = coverIdString
                 )
             )
+            
+            println("📤 Creating advert with request: $createRequest")
             
             val createResult = advertApiService.createAdvert(createRequest, token)
             
@@ -146,7 +148,7 @@ class UserAdvertRepositoryImpl(
             
             println("🔄 Updating advert: ${advert.documentId}")
             
-            var coverId: Int? = null
+            var coverIdString: String? = null
             
             // Step 1: Upload new cover image if provided
             if (coverImageUri != null) {
@@ -161,20 +163,22 @@ class UserAdvertRepositoryImpl(
                 val uploadedFile = uploadResponse.files.firstOrNull()
                     ?: return Result.failure(Exception("No file in upload response"))
                 
-                coverId = uploadedFile.id
-                println("📁 New cover image uploaded successfully with ID: $coverId")
+                coverIdString = uploadedFile.id.toString()
+                println("📁 New cover image uploaded successfully with ID: $coverIdString")
             }
             
-            // Step 2: Update advert
+            // Step 2: Update advert with category as array
             val updateRequest = StrapiAdvertUpdateRequest(
                 data = StrapiAdvertUpdateData(
                     title = title,
                     description = description,
                     slug = slug,
-                    category = categoryId,
-                    cover = coverId
+                    category = listOf(categoryId.toString()), // Convert to array of strings
+                    cover = coverIdString
                 )
             )
+            
+            println("📤 Updating advert with request: $updateRequest")
             
             val updateResult = advertApiService.updateAdvert(advert.id, updateRequest, token)
             
