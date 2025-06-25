@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.example.boltnew.presentation.viewmodel.HomeViewModel
 import com.example.boltnew.ui.components.AdvertCard
 import com.example.boltnew.utils.DisplayResult
-import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -40,7 +39,7 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
-    // Pull-to-refresh state - using the isRefreshing from ViewModel
+    // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refreshAdverts() }
@@ -157,7 +156,7 @@ fun HomeScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Loading adverts...",
+                                    text = "Loading adverts from API...",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -174,9 +173,15 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = errorMessage,
+                                text = "API Error: $errorMessage",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Showing cached data if available",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Row(
@@ -189,7 +194,7 @@ fun HomeScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Retry")
+                                    Text("Retry API")
                                 }
                             }
                         }
@@ -210,7 +215,7 @@ fun HomeScreen(
                                     } else if (uiState.selectedCategory != null) {
                                         "No adverts found in \"${uiState.selectedCategory}\" category"
                                     } else {
-                                        "No adverts available"
+                                        "No adverts available from API"
                                     },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -239,7 +244,7 @@ fun HomeScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Refresh")
+                                        Text("Refresh from API")
                                     }
                                 }
                             }

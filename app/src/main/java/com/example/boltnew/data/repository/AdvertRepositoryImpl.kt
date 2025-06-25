@@ -23,64 +23,44 @@ class AdvertRepositoryImpl(
     override fun getAllAdverts(): Flow<List<Advert>> {
         return advertDao.getAllAdverts()
             .map { entities -> entities.toDomain() }
-            .onStart {
-                // Fetch fresh data from API in background
-                refreshAdvertsFromApi()
-            }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun getAdvertById(id: Int): Advert? {
-        // Try to get from local database first
-        val localAdvert = advertDao.getAdvertById(id)?.toDomain()
-        
-        // If not found locally or data is stale, try API
-        if (localAdvert == null) {
-            try {
-                val apiResult = apiService.getAdvertById(id)
-                if (apiResult.isSuccess) {
-                    val strapiAdvert = apiResult.getOrNull()?.data
-                    strapiAdvert?.let { 
-                        val domainAdvert = it.toDomain()
-                        // Cache in local database
-                        advertDao.insertAdvert(domainAdvert.toEntity())
-                        return domainAdvert
-                    }
+        // Try to get from API first, then fall back to local
+        try {
+            val apiResult = apiService.getAdvertById(id)
+            if (apiResult.isSuccess) {
+                val strapiAdvert = apiResult.getOrNull()?.data
+                strapiAdvert?.let { 
+                    val domainAdvert = it.toDomain()
+                    // Cache in local database
+                    advertDao.insertAdvert(domainAdvert.toEntity())
+                    return domainAdvert
                 }
-            } catch (e: Exception) {
-                // If API fails, return local data if available
             }
+        } catch (e: Exception) {
+            // If API fails, fall back to local data
         }
         
-        return localAdvert
+        // Fall back to local database
+        return advertDao.getAdvertById(id)?.toDomain()
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getAdvertsByCategory(categorySlug: String): Flow<List<Advert>> {
         return advertDao.getAdvertsByCategory(categorySlug)
             .map { entities -> entities.toDomain() }
-            .onStart {
-                // Fetch fresh data from API in background
-                refreshAdvertsByCategoryFromApi(categorySlug)
-            }
     }
     
     override fun getAllCategories(): Flow<List<String>> {
         return advertDao.getAllCategories()
-            .onStart {
-                // Fetch fresh categories from API in background
-                refreshCategoriesFromApi()
-            }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun searchAdverts(query: String): Flow<List<Advert>> {
         return advertDao.searchAdverts(query)
             .map { entities -> entities.toDomain() }
-            .onStart {
-                // Fetch fresh search results from API in background
-                searchAdvertsFromApi(query)
-            }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
@@ -110,16 +90,6 @@ class AdvertRepositoryImpl(
     override suspend fun insertAdverts(adverts: List<Advert>) {
         // For bulk insert, prioritize local storage
         advertDao.insertAdverts(adverts.toEntity())
-        
-        // Optionally sync individual items to API in background
-        adverts.forEach { advert ->
-            try {
-                val createRequest = advert.toStrapiCreateRequest()
-                apiService.createAdvert(createRequest)
-            } catch (e: Exception) {
-                // Ignore API errors for bulk operations
-            }
-        }
     }
     
     @RequiresApi(Build.VERSION_CODES.O)
@@ -163,79 +133,47 @@ class AdvertRepositoryImpl(
     
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun initializeData() {
+        // Always try to fetch from API first
+        try {
+            val apiResult = apiService.getAllAdverts()
+            if (apiResult.isSuccess) {
+                val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
+                if (strapiAdverts.isNotEmpty()) {
+                    val domainAdverts = strapiAdverts.toDomain()
+                    insertAdverts(domainAdverts)
+                    return
+                }
+            }
+        } catch (e: Exception) {
+            // If API fails, check if we have local data
+        }
+        
+        // Only use sample data if no API data and no local data
         val count = advertDao.getAdvertCount()
         if (count == 0) {
-            // Try to fetch from API first
-            try {
-                val apiResult = apiService.getAllAdverts()
-                if (apiResult.isSuccess) {
-                    val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
-                    if (strapiAdverts.isNotEmpty()) {
-                        val domainAdverts = strapiAdverts.toDomain()
-                        insertAdverts(domainAdverts)
-                        return
-                    }
-                }
-            } catch (e: Exception) {
-                // If API fails, fall back to sample data
-            }
-            
-            // Fall back to sample data if API is not available
             val sampleAdverts = getSampleAdverts()
             insertAdverts(sampleAdverts)
         }
     }
     
+    // New method to refresh data from API
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun refreshAdvertsFromApi() {
-        try {
+    suspend fun refreshFromApi(): Boolean {
+        return try {
             val apiResult = apiService.getAllAdverts()
             if (apiResult.isSuccess) {
                 val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
                 val domainAdverts = strapiAdverts.toDomain()
+                
+                // Clear existing data and insert fresh data
+                advertDao.deleteAllAdverts()
                 advertDao.insertAdverts(domainAdverts.toEntity())
+                true
+            } else {
+                false
             }
         } catch (e: Exception) {
-            // Silently handle API errors - local data will be used
-        }
-    }
-    
-    @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun refreshAdvertsByCategoryFromApi(categorySlug: String) {
-        try {
-            val apiResult = apiService.getAdvertsByCategory(categorySlug)
-            if (apiResult.isSuccess) {
-                val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
-                val domainAdverts = strapiAdverts.toDomain()
-                advertDao.insertAdverts(domainAdverts.toEntity())
-            }
-        } catch (e: Exception) {
-            // Silently handle API errors
-        }
-    }
-    
-    private suspend fun refreshCategoriesFromApi() {
-        try {
-            val apiResult = apiService.getCategories()
-            if (apiResult.isSuccess) {
-                // Categories are derived from adverts, so this is handled by refreshAdvertsFromApi
-            }
-        } catch (e: Exception) {
-            // Silently handle API errors
-        }
-    }
-    
-    @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun searchAdvertsFromApi(query: String) {
-        try {
-            val apiResult = apiService.searchAdverts(query)
-            if (apiResult.isSuccess) {
-                val strapiAdverts = apiResult.getOrNull()?.data ?: emptyList()
-                val domainAdverts = strapiAdverts.toDomain()
-                advertDao.insertAdverts(domainAdverts.toEntity())
-            }
-        } catch (e: Exception) {
-            // Silently handle API errors
+            false
         }
     }
     

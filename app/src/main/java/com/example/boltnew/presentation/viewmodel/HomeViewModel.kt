@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.Advert
 import com.example.boltnew.data.repository.AdvertRepository
+import com.example.boltnew.data.repository.AdvertRepositoryImpl
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,7 +62,7 @@ class HomeViewModel(
                     }
                 }
                 .catch { exception ->
-                    _advertsState.value = RequestState.Error("Failed to load adverts: ${exception.message}")
+                    _advertsState.value = RequestState.Error("Failed to load adverts from API: ${exception.message}")
                     _isRefreshing.value = false
                 }
                 .collect { adverts ->
@@ -155,9 +156,19 @@ class HomeViewModel(
         viewModelScope.launch {
             try {
                 // Force refresh from API
-                _advertsState.value = RequestState.Loading
-                loadAdverts()
-                loadCategories()
+                if (advertRepository is AdvertRepositoryImpl) {
+                    val success = advertRepository.refreshFromApi()
+                    if (success) {
+                        loadAdverts()
+                        loadCategories()
+                    } else {
+                        _advertsState.value = RequestState.Error("Failed to refresh from API - using cached data")
+                        _isRefreshing.value = false
+                    }
+                } else {
+                    loadAdverts()
+                    loadCategories()
+                }
             } catch (e: Exception) {
                 _advertsState.value = RequestState.Error("Failed to refresh adverts: ${e.message}")
                 _isRefreshing.value = false
