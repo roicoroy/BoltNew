@@ -44,8 +44,8 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState(initial = false)
     
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("roicoroy@yahoo.com.br") }
+    var password by remember { mutableStateOf("Rwbento123!") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showForgotPassword by remember { mutableStateOf(false) }
     
