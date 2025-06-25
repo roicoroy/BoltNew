@@ -1,6 +1,7 @@
 package com.example.boltnew.di
 
 import com.example.boltnew.data.database.provideDatabase
+import com.example.boltnew.data.network.AdvertApiService
 import com.example.boltnew.data.repository.AdvertRepository
 import com.example.boltnew.data.repository.AdvertRepositoryImpl
 import com.example.boltnew.data.repository.ProfileRepository
@@ -19,8 +20,11 @@ val appModule = module {
     single { get<com.example.boltnew.data.database.AppDatabase>().advertDao() }
     single { get<com.example.boltnew.data.database.AppDatabase>().profileDao() }
     
+    // Network
+    single { AdvertApiService() }
+    
     // Repository
-    single<AdvertRepository> { AdvertRepositoryImpl(get()) }
+    single<AdvertRepository> { AdvertRepositoryImpl(get(), get()) }
     single<ProfileRepository> { ProfileRepositoryImpl(get()) }
     
     // ViewModels
