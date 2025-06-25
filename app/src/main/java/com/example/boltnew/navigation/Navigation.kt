@@ -145,7 +145,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
     val currentDestination = navBackStackEntry?.destination
     
     // Only show bottom navigation on main screens
-    val showBottomNav = currentDestination?.route in listOf("login", "profile")
+    val showBottomNav = currentDestination?.route in listOf("advert", "profile")
     
     if (showBottomNav) {
         NavigationBar {
