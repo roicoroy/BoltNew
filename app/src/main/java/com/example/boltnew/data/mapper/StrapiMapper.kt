@@ -17,22 +17,27 @@ fun StrapiProfile.toDomain(): Profile {
     return Profile(
         id = data.id,
         documentId = data.documentId,
-        username = data.user.username,
-        email = data.user.email,
-        dateOfBirth = if (data.dob.isNotBlank()) {
-            LocalDate.parse(data.dob, dateFormatter)
-        } else {
-            LocalDate.of(1990, 1, 1)
-        },
+        dateOfBirth = data.dob,
+        createdAt = data.createdAt,
+        updatedAt = data.updatedAt,
+        publishedAt = data.publishedAt,
+        user = ProfileUser(
+            id = data.user.id,
+            documentId = data.user.documentId,
+            username = data.user.username,
+            email = data.user.email,
+            blocked = data.user.blocked,
+            confirmed = data.user.confirmed,
+            provider = data.user.provider,
+            createdAt = data.user.createdAt,
+            updatedAt = data.user.updatedAt,
+            publishedAt = data.user.publishedAt
+        ),
         addresses = data.addresses.map { it.toDomain() },
         avatar = if (data.avatar.url.isNotBlank()) {
             data.avatar.toDomain()
         } else null,
-        userAdverts = data.adverts.map { it.toDomain() },
-        role = null, // Role information not available in StrapiProfile
-        isBlocked = data.user.blocked,
-        isConfirmed = data.user.confirmed,
-        provider = data.user.provider
+        userAdverts = data.adverts.map { it.toDomain() }
     )
 }
 
@@ -48,7 +53,10 @@ fun StrapiProfile.Data.Addresse.toDomain(): Address {
         city = city,
         postCode = postCode,
         country = country,
-        phoneNumber = phoneNumber
+        phoneNumber = phoneNumber,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt
     )
 }
 
@@ -64,6 +72,13 @@ fun StrapiProfile.Data.Avatar.toDomain(): Avatar {
         width = width,
         height = height,
         size = size,
+        ext = ext,
+        mime = mime,
+        hash = hash,
+        provider = provider,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt,
         formats = formats.toDomain()
     )
 }
@@ -77,7 +92,11 @@ fun StrapiProfile.Data.Avatar.Formats.toDomain(): AvatarFormats {
                 url = thumbnail.url,
                 width = thumbnail.width,
                 height = thumbnail.height,
-                size = thumbnail.size
+                size = thumbnail.size,
+                ext = thumbnail.ext,
+                hash = thumbnail.hash,
+                mime = thumbnail.mime,
+                sizeInBytes = thumbnail.sizeInBytes
             )
         } else null,
         small = if (small.url.isNotBlank()) {
@@ -86,7 +105,11 @@ fun StrapiProfile.Data.Avatar.Formats.toDomain(): AvatarFormats {
                 url = small.url,
                 width = small.width,
                 height = small.height,
-                size = small.size
+                size = small.size,
+                ext = small.ext,
+                hash = small.hash,
+                mime = small.mime,
+                sizeInBytes = small.sizeInBytes
             )
         } else null,
         medium = if (medium.url.isNotBlank()) {
@@ -95,7 +118,11 @@ fun StrapiProfile.Data.Avatar.Formats.toDomain(): AvatarFormats {
                 url = medium.url,
                 width = medium.width,
                 height = medium.height,
-                size = medium.size
+                size = medium.size,
+                ext = medium.ext,
+                hash = medium.hash,
+                mime = medium.mime,
+                sizeInBytes = medium.sizeInBytes
             )
         } else null,
         large = if (large.url.isNotBlank()) {
@@ -104,7 +131,11 @@ fun StrapiProfile.Data.Avatar.Formats.toDomain(): AvatarFormats {
                 url = large.url,
                 width = large.width,
                 height = large.height,
-                size = large.size
+                size = large.size,
+                ext = large.ext,
+                hash = large.hash,
+                mime = large.mime,
+                sizeInBytes = large.sizeInBytes
             )
         } else null
     )
@@ -117,7 +148,10 @@ fun StrapiProfile.Data.Advert.toDomain(): UserAdvert {
         documentId = documentId,
         title = title,
         description = description,
-        slug = slug
+        slug = slug,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt
     )
 }
 
@@ -125,15 +159,32 @@ fun StrapiProfile.Data.Advert.toDomain(): UserAdvert {
 fun StrapiUser.toDomain(): User {
     return User(
         id = id,
-        firstName = profile.documentId, // Using documentId as firstName since actual name not available
-        lastName = username,
+        documentId = documentId,
+        username = username,
         email = email,
-        address = "", // Address not directly available in StrapiUser
-        dateOfBirth = if (profile.dob.isNotBlank()) {
-            LocalDate.parse(profile.dob, dateFormatter)
-        } else {
-            LocalDate.of(1990, 1, 1)
-        },
-        avatarPath = null
+        blocked = blocked,
+        confirmed = confirmed,
+        provider = provider,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        publishedAt = publishedAt,
+        profile = UserProfile(
+            id = profile.id,
+            documentId = profile.documentId,
+            dateOfBirth = profile.dob,
+            createdAt = profile.createdAt,
+            updatedAt = profile.updatedAt,
+            publishedAt = profile.publishedAt
+        ),
+        role = UserRole(
+            id = role.id,
+            documentId = role.documentId,
+            name = role.name,
+            description = role.description,
+            type = role.type,
+            createdAt = role.createdAt,
+            updatedAt = role.updatedAt,
+            publishedAt = role.publishedAt
+        )
     )
 }
