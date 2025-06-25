@@ -1,5 +1,6 @@
 package com.example.boltnew.navigation
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
@@ -19,7 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.boltnew.presentation.viewmodel.AuthViewModel
-import com.example.boltnew.ui.screens.HomeScreen
+import com.example.boltnew.ui.screens.AdvertScreen
 import com.example.boltnew.ui.screens.AdvertDetailScreen
 import com.example.boltnew.ui.screens.ProfileScreen
 import com.example.boltnew.ui.screens.auth.LoginScreen
@@ -28,6 +29,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
@@ -36,7 +38,7 @@ fun AppNavigation(
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState(initial = false)
     
     // Determine start destination based on auth state
-    val startDestination = if (isLoggedIn) "home" else "login"
+    val startDestination = if (isLoggedIn) "advert" else "login"
     
     Scaffold(
         bottomBar = {
@@ -45,7 +47,7 @@ fun AppNavigation(
                 BottomNavigationBar(navController = navController)
             }
         }
-    ) { paddingValues ->
+    ) {  paddingValues ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -78,7 +80,7 @@ fun AppNavigation(
             composable("login") {
                 LoginScreen(
                     onLoginSuccess = {
-                        navController.navigate("home") {
+                        navController.navigate("advert") {
                             popUpTo("login") { inclusive = true }
                         }
                     },
@@ -91,7 +93,7 @@ fun AppNavigation(
             composable("register") {
                 RegisterScreen(
                     onRegisterSuccess = {
-                        navController.navigate("home") {
+                        navController.navigate("advert") {
                             popUpTo("register") { inclusive = true }
                         }
                     },
@@ -102,8 +104,8 @@ fun AppNavigation(
             }
             
             // Main App Screens (Authenticated)
-            composable("home") {
-                HomeScreen(
+            composable("advert") {
+                AdvertScreen(
                     onAdvertClick = { advertId ->
                         navController.navigate("advert_detail/$advertId")
                     }
@@ -143,16 +145,16 @@ private fun BottomNavigationBar(navController: NavHostController) {
     val currentDestination = navBackStackEntry?.destination
     
     // Only show bottom navigation on main screens
-    val showBottomNav = currentDestination?.route in listOf("home", "profile")
+    val showBottomNav = currentDestination?.route in listOf("login", "profile")
     
     if (showBottomNav) {
         NavigationBar {
             NavigationBarItem(
-                icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                icon = { Icon(Icons.Default.Home, contentDescription = "Adverts") },
                 label = { Text("Adverts") },
-                selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
+                selected = currentDestination?.hierarchy?.any { it.route == "advert" } == true,
                 onClick = {
-                    navController.navigate("home") {
+                    navController.navigate("advert") {
                         popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
                     }

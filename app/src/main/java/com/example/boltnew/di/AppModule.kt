@@ -13,7 +13,7 @@ import com.example.boltnew.data.repository.AuthRepository
 import com.example.boltnew.data.repository.AuthRepositoryImpl
 import com.example.boltnew.data.repository.ProfileRepository
 import com.example.boltnew.data.repository.ProfileRepositoryImpl
-import com.example.boltnew.presentation.viewmodel.HomeViewModel
+import com.example.boltnew.presentation.viewmodel.AdvertViewModel
 import com.example.boltnew.presentation.viewmodel.AdvertDetailViewModel
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.presentation.viewmodel.AuthViewModel
@@ -43,7 +43,7 @@ val appModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     
     // ViewModels
-    viewModel { HomeViewModel(get(), get()) }
+    viewModel { AdvertViewModel(get(), get()) }
     viewModel { AdvertDetailViewModel(get()) }
     viewModel { ProfileViewModel(get(), get()) }
     viewModel { AuthViewModel(get()) }

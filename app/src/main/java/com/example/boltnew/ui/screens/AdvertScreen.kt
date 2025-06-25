@@ -20,7 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.boltnew.presentation.viewmodel.HomeViewModel
+import com.example.boltnew.presentation.viewmodel.AdvertViewModel
 import com.example.boltnew.ui.components.AdvertCard
 import com.example.boltnew.utils.DisplayResult
 import org.koin.androidx.compose.koinViewModel
@@ -28,10 +28,10 @@ import org.koin.androidx.compose.koinViewModel
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
-fun HomeScreen(
+fun AdvertScreen(
     onAdvertClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = koinViewModel()
+    viewModel: AdvertViewModel = koinViewModel()
 ) {
     val advertsState by viewModel.advertsState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()

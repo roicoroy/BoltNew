@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
-class HomeViewModel(
+class AdvertViewModel(
     private val advertRepository: AdvertRepository,
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
