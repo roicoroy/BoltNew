@@ -7,6 +7,7 @@ import com.example.boltnew.data.network.AdvertApiService
 import com.example.boltnew.data.network.AddressApiService
 import com.example.boltnew.data.network.AuthApiService
 import com.example.boltnew.data.network.AuthenticatedHttpClient
+import com.example.boltnew.data.network.ProfileApiService
 import com.example.boltnew.data.network.TokenManager
 import com.example.boltnew.data.network.UploadApiService
 import com.example.boltnew.data.repository.AddressRepository
@@ -44,10 +45,11 @@ val appModule = module {
     single { AuthApiService() }
     single { UploadApiService() }
     single { AddressApiService() }
+    single { ProfileApiService() }
 
     // Repository
     single<AdvertRepository> { AdvertRepositoryImpl(get(), get(), get()) }
-    single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
+    single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get(), get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<AddressRepository> { AddressRepositoryImpl(get(), get(), get()) }
     single<UserAdvertRepository> { UserAdvertRepositoryImpl(get(), get(), get(), get()) }

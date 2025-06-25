@@ -10,6 +10,7 @@ import com.example.boltnew.data.mapper.toEntity
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.profile.ProfileUser
+import com.example.boltnew.data.network.ProfileApiService
 import com.example.boltnew.data.network.UploadApiService
 import com.example.boltnew.data.network.TokenManager
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.flow.map
 class ProfileRepositoryImpl(
     private val profileDao: ProfileDao,
     private val uploadApiService: UploadApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val profileApiService: ProfileApiService
 ) : ProfileRepository {
     
     override fun getProfile(): Flow<Profile?> {
@@ -66,6 +68,55 @@ class ProfileRepositoryImpl(
         if (profile.userAdverts.isNotEmpty()) {
             val userAdvertEntities = profile.userAdverts.map { it.toEntity(profile.id) }
             profileDao.insertUserAdverts(userAdvertEntities)
+        }
+    }
+    
+    override suspend fun updateProfileDob(profileDocumentId: String, dateOfBirth: String): Result<Profile> {
+        return try {
+            val token = tokenManager.getToken()
+                ?: return Result.failure(Exception("No authentication token available"))
+            
+            println("🔄 Updating profile DOB: $profileDocumentId with date: $dateOfBirth")
+            
+            // Step 1: Update profile DOB via API
+            val updateResult = profileApiService.updateProfileDob(
+                profileDocumentId = profileDocumentId,
+                dateOfBirth = dateOfBirth,
+                token = token
+            )
+            
+            if (updateResult.isFailure) {
+                return Result.failure(updateResult.exceptionOrNull() ?: Exception("Profile DOB update failed"))
+            }
+            
+            val updatedProfileResponse = updateResult.getOrThrow()
+            println("✅ Profile DOB updated successfully via API")
+            
+            // Step 2: Update local database
+            // Get current profile from local database
+            val currentProfile = profileDao.getProfileById(1) // Assuming single user profile with ID 1
+            if (currentProfile != null) {
+                val updatedEntity = currentProfile.copy(
+                    dateOfBirth = dateOfBirth,
+                    updatedAt = updatedProfileResponse.data.updatedAt
+                )
+                profileDao.updateProfile(updatedEntity)
+                println("✅ Local profile DOB updated successfully")
+                
+                // Return updated domain model
+                val addresses = profileDao.getAddressesByProfileId(updatedEntity.id)
+                val userAdverts = profileDao.getUserAdvertsByProfileId(updatedEntity.id)
+                val domainProfile = updatedEntity.toDomain(addresses, userAdverts)
+                
+                Result.success(domainProfile)
+            } else {
+                Result.failure(Exception("Local profile not found"))
+            }
+            
+        } catch (e: Exception) {
+            println("💥 Profile DOB update process failed: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
         }
     }
     

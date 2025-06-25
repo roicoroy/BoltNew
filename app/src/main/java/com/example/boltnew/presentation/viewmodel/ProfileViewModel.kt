@@ -187,6 +187,59 @@ class ProfileViewModel(
         }
     }
     
+    // Profile DOB update
+    fun updateProfileDob(dateOfBirth: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isProfileLoading = true)
+                
+                val currentProfile = (_profileState.value as? RequestState.Success)?.data
+                if (currentProfile == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Profile not loaded. Please try again."
+                    )
+                    return@launch
+                }
+                
+                println("📅 Updating profile DOB for: ${currentProfile.documentId}")
+                
+                val result = profileRepository.updateProfileDob(
+                    profileDocumentId = currentProfile.documentId,
+                    dateOfBirth = dateOfBirth
+                )
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Date of birth updated successfully!",
+                        showProfileModal = false
+                    )
+                    
+                    println("✅ Profile DOB updated successfully")
+                    
+                    // Reload profile to show updated DOB
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Failed to update date of birth: $error"
+                    )
+                    println("❌ Profile DOB update failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isProfileLoading = false,
+                    operationMessage = "Failed to update date of birth: ${e.message}"
+                )
+                println("💥 Profile DOB update error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
     // Address CRUD operations
     fun createAddress(address: Address) {
         viewModelScope.launch {
@@ -515,6 +568,15 @@ class ProfileViewModel(
         }
     }
     
+    // UI state management for profile
+    fun showProfileEditModal() {
+        _uiState.value = _uiState.value.copy(showProfileModal = true)
+    }
+    
+    fun hideProfileEditModal() {
+        _uiState.value = _uiState.value.copy(showProfileModal = false)
+    }
+    
     // UI state management for addresses
     fun showAddAddressModal() {
         _uiState.value = _uiState.value.copy(
@@ -579,6 +641,8 @@ class ProfileViewModel(
 data class ProfileUiState(
     val operationMessage: String? = null,
     val isUpdatingAvatar: Boolean = false,
+    val isProfileLoading: Boolean = false,
+    val showProfileModal: Boolean = false,
     val isAddressLoading: Boolean = false,
     val showAddressModal: Boolean = false,
     val editingAddress: Address? = null,

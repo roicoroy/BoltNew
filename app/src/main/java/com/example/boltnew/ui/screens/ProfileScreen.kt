@@ -35,6 +35,7 @@ import com.example.boltnew.data.model.auth.profile.UserAdvert
 import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.ui.components.AddressFormModal
 import com.example.boltnew.ui.components.AdvertFormModal
+import com.example.boltnew.ui.components.ProfileEditModal
 import com.example.boltnew.utils.CameraUtils
 import com.example.boltnew.utils.DisplayResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -247,6 +248,7 @@ fun ProfileScreen(
                                 permissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         },
+                        onEditProfile = { viewModel.showProfileEditModal() },
                         onAddAddress = { viewModel.showAddAddressModal() },
                         onEditAddress = { address -> viewModel.showEditAddressModal(address) },
                         onDeleteAddress = { address -> viewModel.deleteAddress(address) },
@@ -270,6 +272,17 @@ fun ProfileScreen(
             )
         }
     }
+    
+    // Profile Edit Modal
+    ProfileEditModal(
+        isVisible = uiState.showProfileModal,
+        profile = (profileState as? com.example.boltnew.utils.RequestState.Success)?.data,
+        isLoading = uiState.isProfileLoading,
+        onDismiss = { viewModel.hideProfileEditModal() },
+        onSave = { dateOfBirth ->
+            viewModel.updateProfileDob(dateOfBirth)
+        }
+    )
     
     // Address Form Modal
     AddressFormModal(
@@ -323,6 +336,7 @@ fun ProfileScreen(
 private fun ProfileContent(
     profile: Profile,
     onAvatarClick: () -> Unit,
+    onEditProfile: () -> Unit,
     onAddAddress: () -> Unit,
     onEditAddress: (Address) -> Unit,
     onDeleteAddress: (Address) -> Unit,
@@ -403,7 +417,10 @@ private fun ProfileContent(
         
         // Basic Information Card
         item {
-            ProfileInfoCard(profile = profile)
+            ProfileInfoCard(
+                profile = profile,
+                onEditProfile = onEditProfile
+            )
         }
         
         // Addresses Section
@@ -696,7 +713,10 @@ private fun AvatarSection(
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun ProfileInfoCard(profile: Profile) {
+private fun ProfileInfoCard(
+    profile: Profile,
+    onEditProfile: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -706,21 +726,35 @@ private fun ProfileInfoCard(profile: Profile) {
             modifier = Modifier.padding(20.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Profile Information",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Profile Information",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                IconButton(onClick = onEditProfile) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Profile",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(20.dp))
