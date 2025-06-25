@@ -78,6 +78,9 @@ dependencies {
     // Swipe refresh
     implementation("androidx.compose.material:material:1.5.8")
     
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended:1.5.8")
+
     // Ktor HTTP Client
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
@@ -87,9 +90,7 @@ dependencies {
     
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
-
-    implementation("androidx.compose.material:material-icons-extended:<version>")
-
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
