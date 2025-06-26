@@ -50,11 +50,18 @@ fun AppNavigation(
     // Determine start destination based on auth state
     val startDestination = if (isLoggedIn) "advert" else "login"
 
+    // Create shared ProfileViewModel instance for the entire app
+    val profileViewModel: ProfileViewModel = koinViewModel()
+
     Scaffold(
         bottomBar = {
             // Only show bottom navigation for authenticated main screens
             if (isLoggedIn) {
-                BottomNavigationBar(navController = navController)
+                BottomNavigationBar(
+                    navController = navController,
+                    authViewModel = authViewModel,
+                    profileViewModel = profileViewModel // Pass shared instance
+                )
             }
         }
     ) { paddingValues ->
@@ -124,7 +131,8 @@ fun AppNavigation(
                         navController.navigate("login") {
                             popUpTo(0) { inclusive = true }
                         }
-                    }
+                    },
+                    profileViewModel = profileViewModel // Pass shared instance
                 )
             }
 
@@ -160,7 +168,7 @@ fun AppNavigation(
 private fun BottomNavigationBar(
     navController: NavHostController,
     authViewModel: AuthViewModel = koinViewModel(),
-    profileViewModel: ProfileViewModel = koinViewModel()
+    profileViewModel: ProfileViewModel // Receive shared instance
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -213,7 +221,8 @@ private fun BottomNavigationBar(
                     label = { Text("Create Profile") },
                     selected = false,
                     onClick = {
-                        // Show profile creation modal
+                        // Show profile creation modal using shared instance
+                        println("🔘 Create Profile button clicked - showing modal")
                         profileViewModel.showProfileEditModal()
                     }
                 )

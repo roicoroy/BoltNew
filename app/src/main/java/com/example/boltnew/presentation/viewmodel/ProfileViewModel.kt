@@ -121,6 +121,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isProfileLoading = true)
+                println("🔘 ProfileViewModel.createProfile() called with DOB: $dateOfBirth")
                 
                 // Get current user ID from auth repository
                 val currentUserResult = authRepository.getCurrentUser()
@@ -620,11 +621,15 @@ class ProfileViewModel(
     
     // UI state management for profile
     fun showProfileEditModal() {
+        println("🔘 ProfileViewModel.showProfileEditModal() called")
         _uiState.value = _uiState.value.copy(showProfileModal = true)
+        println("🔘 ProfileModal state updated to: ${_uiState.value.showProfileModal}")
     }
     
     fun hideProfileEditModal() {
+        println("🔘 ProfileViewModel.hideProfileEditModal() called")
         _uiState.value = _uiState.value.copy(showProfileModal = false)
+        println("🔘 ProfileModal state updated to: ${_uiState.value.showProfileModal}")
     }
     
     // UI state management for addresses

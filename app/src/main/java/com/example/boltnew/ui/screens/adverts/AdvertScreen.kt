@@ -36,7 +36,7 @@ fun AdvertScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AdvertViewModel = koinViewModel(),
-    profileViewModel: ProfileViewModel = koinViewModel()
+    profileViewModel: ProfileViewModel // Receive shared instance instead of creating new one
 ) {
     val advertsState by viewModel.advertsState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()
@@ -44,8 +44,13 @@ fun AdvertScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     
-    // Profile state for modal
+    // Profile state for modal - using shared instance
     val profileUiState by profileViewModel.uiState.collectAsState()
+    
+    // Debug logging
+    LaunchedEffect(profileUiState.showProfileModal) {
+        println("🔍 AdvertScreen - ProfileModal visibility: ${profileUiState.showProfileModal}")
+    }
     
     // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
@@ -299,13 +304,17 @@ fun AdvertScreen(
         }
     }
     
-    // Profile Edit Modal for profile creation
+    // Profile Edit Modal for profile creation - using shared ProfileViewModel instance
     ProfileEditModal(
         isVisible = profileUiState.showProfileModal,
         profile = null, // null = create mode
         isLoading = profileUiState.isProfileLoading,
-        onDismiss = { profileViewModel.hideProfileEditModal() },
+        onDismiss = { 
+            println("🔘 ProfileEditModal dismissed")
+            profileViewModel.hideProfileEditModal() 
+        },
         onSave = { dateOfBirth ->
+            println("🔘 ProfileEditModal save triggered with DOB: $dateOfBirth")
             profileViewModel.createProfile(dateOfBirth)
         }
     )
