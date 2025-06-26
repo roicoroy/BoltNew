@@ -173,16 +173,27 @@ private fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val currentUser by authViewModel.currentUser.collectAsState()
+    // Get profile state from ProfileViewModel instead of AuthViewModel
+    val profileState by profileViewModel.profileState.collectAsState()
     
-    // Check if user has a profile
-    val hasProfile = when (val userState = currentUser) {
+    // Check if user has a profile based on ProfileViewModel state
+    val hasProfile = when (profileState) {
         is RequestState.Success -> {
-            val user = userState.data
-            user.profile.documentId.isNotBlank()
+            val profile = profileState.data
+            profile.documentId.isNotBlank() && profile.id > 0
         }
-        else -> false
+        is RequestState.Error -> {
+            // If there's an error loading profile, assume no profile exists
+            false
+        }
+        else -> {
+            // Loading or Idle state - assume no profile for now
+            false
+        }
     }
+    
+    println("🔍 BottomNavigationBar - Profile state: $profileState")
+    println("🔍 BottomNavigationBar - Has profile: $hasProfile")
 
     // Only show bottom navigation on main screens
     val showBottomNav = currentDestination?.route in listOf("advert", "profile")
