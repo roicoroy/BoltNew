@@ -8,10 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 class ProfileApiService {
-    
-    private val client = HttpClient.client
-    private val baseUrl = "https://8c0c-86-156-238-78.ngrok-free.app/api"
-    
+
     /**
      * Update profile date of birth
      */

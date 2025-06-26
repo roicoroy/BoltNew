@@ -12,10 +12,7 @@ import kotlinx.serialization.Serializable
 import java.io.File
 
 class UploadApiService {
-    
-    private val client = HttpClient.client
-    private val baseUrl = "https://8c0c-86-156-238-78.ngrok-free.app/api"
-    
+
     /**
      * Upload image file to Strapi upload endpoint
      */
@@ -26,19 +23,20 @@ class UploadApiService {
     ): Result<StrapiUploadResponse> {
         return try {
             println("🔄 Starting image upload to Strapi...")
-            
+
             // Get file from URI
             val inputStream = context.contentResolver.openInputStream(imageUri)
                 ?: return Result.failure(Exception("Cannot open image file"))
-            
+
             val fileBytes = inputStream.readBytes()
             inputStream.close()
-            
+
             // Get filename from URI or create one
-            val fileName = getFileNameFromUri(context, imageUri) ?: "avatar_${System.currentTimeMillis()}.jpg"
-            
+            val fileName =
+                getFileNameFromUri(context, imageUri) ?: "avatar_${System.currentTimeMillis()}.jpg"
+
             println("📁 Uploading file: $fileName (${fileBytes.size} bytes)")
-            
+
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl/upload",
                 formData = formData {
@@ -51,13 +49,13 @@ class UploadApiService {
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
             }
-            
+
             println("📤 Upload response status: ${response.status}")
-            
+
             if (response.status.isSuccess()) {
                 val uploadResponse = response.body<List<StrapiUploadedFile>>()
                 println("✅ Upload successful: ${uploadResponse.firstOrNull()?.id}")
-                
+
                 if (uploadResponse.isNotEmpty()) {
                     Result.success(StrapiUploadResponse(uploadResponse))
                 } else {
@@ -68,14 +66,14 @@ class UploadApiService {
                 println("❌ Upload failed: $errorBody")
                 Result.failure(Exception("Upload failed: ${response.status} - $errorBody"))
             }
-            
+
         } catch (e: Exception) {
             println("💥 Upload error: ${e.message}")
             e.printStackTrace()
             Result.failure(e)
         }
     }
-    
+
     /**
      * Link uploaded image to profile
      */
@@ -86,22 +84,22 @@ class UploadApiService {
     ): Result<Boolean> {
         return try {
             println("🔗 Linking image $imageId to profile $profileDocumentId...")
-            
+
             val requestBody = ProfileAvatarUpdateRequest(
                 data = ProfileAvatarUpdateData(
                     avatar = listOf(imageId.toString())
                 )
             )
-            
+
             val response = client.put("$baseUrl/profiles/$profileDocumentId") {
                 header("Authorization", "Bearer $token")
                 header("ngrok-skip-browser-warning", "true")
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }
-            
+
             println("🔄 Profile update response status: ${response.status}")
-            
+
             if (response.status.isSuccess()) {
                 println("✅ Profile avatar updated successfully")
                 Result.success(true)
@@ -110,14 +108,14 @@ class UploadApiService {
                 println("❌ Profile update failed: $errorBody")
                 Result.failure(Exception("Profile update failed: ${response.status} - $errorBody"))
             }
-            
+
         } catch (e: Exception) {
             println("💥 Profile update error: ${e.message}")
             e.printStackTrace()
             Result.failure(e)
         }
     }
-    
+
     private fun getFileNameFromUri(context: Context, uri: Uri): String? {
         return try {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->

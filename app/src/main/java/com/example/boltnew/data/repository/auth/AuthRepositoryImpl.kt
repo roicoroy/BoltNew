@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.auth
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -11,6 +11,7 @@ import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.user.User
 import com.example.boltnew.data.network.AuthApiService
 import com.example.boltnew.data.network.TokenManager
+import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.Flow
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -101,7 +102,7 @@ class AuthRepositoryImpl(
         }
     }
     
-    override suspend fun getUserProfile(): Result<Profile> {
+    override suspend fun getUserProfile(): RequestState<Profile> {
         return try {
             val token = tokenManager.getToken()
             if (token != null) {
@@ -109,8 +110,8 @@ class AuthRepositoryImpl(
                 
                 // First, get raw data to understand the structure
                 val rawDataResult = authApiService.getProfileDataRaw(token)
-                if (rawDataResult.isSuccess) {
-                    val rawData = rawDataResult.getOrNull()
+                if (rawDataResult.isSuccess()) {
+                    val rawData = rawDataResult.getSuccessData()
                     println("📋 Raw profile data: $rawData")
                     
                     // Check if the response indicates the user doesn't have a profile
@@ -118,7 +119,7 @@ class AuthRepositoryImpl(
                         rawData?.contains("\"profile\":{}") == true ||
                         rawData?.isBlank() == true) {
                         println("⚠️ User has no profile data in Strapi")
-                        return Result.failure(Exception("User profile not found. Please ensure your Strapi user has an associated profile."))
+                        return RequestState.Error(("User profile not found. Please ensure your Strapi user has an associated profile."))
                     }
                 }
                 
@@ -131,26 +132,26 @@ class AuthRepositoryImpl(
                     // Check if the profile data is actually populated
                     if (strapiProfile.data.id == 0 && strapiProfile.data.user.id == 0) {
                         println("⚠️ Profile data appears to be empty")
-                        return Result.failure(Exception("Profile data is empty. Please check your Strapi configuration and ensure the user has a profile."))
+                        return RequestState.Error(("Profile data is empty. Please check your Strapi configuration and ensure the user has a profile."))
                     }
                     
                     val domainProfile = strapiProfile.toDomain()
                     println("🎯 Domain profile mapped: $domainProfile")
-                    
-                    Result.success(domainProfile)
+
+                    RequestState.Success(domainProfile)
                 } else {
                     val error = result.exceptionOrNull()
                     println("❌ Profile API error: ${error?.message}")
-                    Result.failure(error ?: Exception("Unknown profile API error"))
+                    RequestState.Error(("Unknown profile API error"))
                 }
             } else {
                 println("❌ No authentication token available")
-                Result.failure(Exception("No authentication token available"))
+                RequestState.Error(("No authentication token available"))
             }
         } catch (e: Exception) {
             println("💥 Profile repository error: ${e.message}")
             e.printStackTrace()
-            Result.failure(e)
+            RequestState.Error(e.toString())
         }
     }
     

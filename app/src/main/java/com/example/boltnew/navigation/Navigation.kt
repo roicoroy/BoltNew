@@ -27,8 +27,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.boltnew.presentation.viewmodel.AuthViewModel
-import com.example.boltnew.ui.screens.AdvertDetailScreen
-import com.example.boltnew.ui.screens.AdvertScreen
+import com.example.boltnew.presentation.viewmodel.ProfileViewModel
+import com.example.boltnew.ui.screens.adverts.AdvertDetailScreen
+import com.example.boltnew.ui.screens.adverts.AdvertScreen
 import com.example.boltnew.ui.screens.ProfileScreen
 import com.example.boltnew.ui.screens.auth.LoginScreen
 import com.example.boltnew.ui.screens.auth.RegisterScreen
@@ -43,10 +44,10 @@ fun AppNavigation(
     authViewModel: AuthViewModel = koinViewModel()
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState(initial = false)
-    
+
     // Determine start destination based on auth state
     val startDestination = if (isLoggedIn) "advert" else "login"
-    
+
     Scaffold(
         bottomBar = {
             // Only show bottom navigation for authenticated main screens
@@ -54,7 +55,7 @@ fun AppNavigation(
                 BottomNavigationBar(navController = navController)
             }
         }
-    ) {  paddingValues ->
+    ) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
@@ -96,7 +97,7 @@ fun AppNavigation(
                     }
                 )
             }
-            
+
             composable("register") {
                 RegisterScreen(
                     onRegisterSuccess = {
@@ -109,16 +110,22 @@ fun AppNavigation(
                     }
                 )
             }
-            
+
             // Main App Screens (Authenticated)
             composable("advert") {
                 AdvertScreen(
                     onAdvertClick = { advertId ->
                         navController.navigate("advert_detail/$advertId")
+                    },
+                    onLogout = {
+                        authViewModel.logout()
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
-            
+
             composable("profile") {
                 ProfileScreen(
                     onBackClick = {
@@ -132,7 +139,7 @@ fun AppNavigation(
                     }
                 )
             }
-            
+
             composable("advert_detail/{advertId}") { backStackEntry ->
                 val advertId = backStackEntry.arguments?.getString("advertId")?.toIntOrNull() ?: 0
                 AdvertDetailScreen(
@@ -146,14 +153,20 @@ fun AppNavigation(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun BottomNavigationBar(navController: NavHostController) {
+private fun BottomNavigationBar(
+    navController: NavHostController,
+    authViewModel: AuthViewModel = koinViewModel()
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    
+
+    val currentUser by authViewModel.currentUser.collectAsState()
+
     // Only show bottom navigation on main screens
     val showBottomNav = currentDestination?.route in listOf("advert", "profile")
-    
+
     if (showBottomNav) {
         NavigationBar {
             NavigationBarItem(
@@ -168,6 +181,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
                 }
             )
             NavigationBarItem(
+                enabled = currentUser.getSuccessData().profile.documentId.isBlank(),
                 icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                 label = { Text("Profile") },
                 selected = currentDestination?.hierarchy?.any { it.route == "profile" } == true,

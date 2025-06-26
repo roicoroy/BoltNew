@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.profile
 
 import com.example.boltnew.data.model.auth.profile.Profile
 import kotlinx.coroutines.flow.Flow

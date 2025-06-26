@@ -17,9 +17,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
-import io.github.vanpra.composematerialdialogs.MaterialDialog
-import io.github.vanpra.composematerialdialogs.datetime.date.datepicker
-import io.github.vanpra.composematerialdialogs.rememberMaterialDialogState
+import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

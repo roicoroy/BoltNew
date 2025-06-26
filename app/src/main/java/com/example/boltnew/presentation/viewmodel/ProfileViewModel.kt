@@ -6,15 +6,15 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.boltnew.data.model.StrapiCategoryOption
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.profile.UserAdvert
-import com.example.boltnew.data.network.StrapiCategoryOption
-import com.example.boltnew.data.repository.AddressRepository
-import com.example.boltnew.data.repository.AuthRepository
-import com.example.boltnew.data.repository.ProfileRepository
-import com.example.boltnew.data.repository.ProfileRepositoryImpl
-import com.example.boltnew.data.repository.UserAdvertRepository
+import com.example.boltnew.data.repository.auth.AuthRepository
+import com.example.boltnew.data.repository.profile.ProfileRepository
+import com.example.boltnew.data.repository.profile.ProfileRepositoryImpl
+import com.example.boltnew.data.repository.address.AddressRepository
+import com.example.boltnew.data.repository.user.UserAdvertRepository
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,8 +55,8 @@ class ProfileViewModel(
                 // First try to get profile from auth repository (Strapi API)
                 val authResult = authRepository.getUserProfile()
                 
-                if (authResult.isSuccess) {
-                    val profile = authResult.getOrThrow()
+                if (authResult.isSuccess()) {
+                    val profile = authResult.getSuccessData()
                     println("Profile loaded successfully from API: $profile")
                     _profileState.value = RequestState.Success(profile)
                     
@@ -66,11 +66,10 @@ class ProfileViewModel(
                         println("Profile cached locally")
                     } catch (e: Exception) {
                         println("Failed to cache profile: ${e.message}")
-                        // Ignore cache errors, we have the data from API
                     }
                 } else {
-                    val apiError = authResult.exceptionOrNull()
-                    println("API failed: ${apiError?.message}")
+                    val apiError = authResult.getErrorMessage()
+                    println("API failed: ${apiError}")
                     
                     // Fallback to local profile repository
                     println("Falling back to local profile...")

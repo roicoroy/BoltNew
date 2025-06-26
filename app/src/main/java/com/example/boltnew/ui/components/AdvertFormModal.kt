@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import com.example.boltnew.data.model.StrapiCategoryOption
 import com.example.boltnew.data.model.auth.profile.UserAdvert
-import com.example.boltnew.data.network.StrapiCategoryOption
 import com.example.boltnew.utils.CameraUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted

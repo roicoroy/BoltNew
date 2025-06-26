@@ -1,4 +1,4 @@
-package com.example.boltnew.ui.screens
+package com.example.boltnew.ui.screens.adverts
 
 import android.os.Build
 import androidx.annotation.RequiresApi

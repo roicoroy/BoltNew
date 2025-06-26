@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.advert
 
 import android.os.Build
 import androidx.annotation.RequiresApi

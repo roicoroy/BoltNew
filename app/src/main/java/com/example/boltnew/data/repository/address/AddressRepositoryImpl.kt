@@ -1,14 +1,14 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.address
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.example.boltnew.data.model.StrapiAddressCreateData
+import com.example.boltnew.data.model.StrapiAddressCreateRequest
+import com.example.boltnew.data.model.StrapiAddressUpdateData
+import com.example.boltnew.data.model.StrapiAddressUpdateRequest
 import com.example.boltnew.data.model.auth.profile.Address
 import com.example.boltnew.data.network.AddressApiService
 import com.example.boltnew.data.network.AuthApiService
-import com.example.boltnew.data.network.StrapiAddressCreateData
-import com.example.boltnew.data.network.StrapiAddressCreateRequest
-import com.example.boltnew.data.network.StrapiAddressUpdateData
-import com.example.boltnew.data.network.StrapiAddressUpdateRequest
 import com.example.boltnew.data.network.TokenManager
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -22,7 +22,7 @@ class AddressRepositoryImpl(
         return try {
             val token = tokenManager.getToken()
                 ?: return Result.failure(Exception("No authentication token available"))
-            
+            val loggedUser = tokenManager.getUserId()
             println("🏠 Creating address for profile: $profileDocumentId")
             
             // Step 1: Create address

@@ -1,23 +1,29 @@
 package com.example.boltnew.data.network
 
+import com.example.boltnew.data.model.ProfileAdvertUpdateData
+import com.example.boltnew.data.model.ProfileAdvertUpdateRequest
+import com.example.boltnew.data.model.StrapiCategoriesResponse
+import com.example.boltnew.data.model.StrapiCategoryOption
 import com.example.boltnew.data.model.advert.AdvertCreateResponse
 import com.example.boltnew.data.model.advert.StrapiAdvertCreateRequest
 import com.example.boltnew.data.model.advert.StrapiAdvertResponse
 import com.example.boltnew.data.model.advert.StrapiAdvertSingleResponse
 import com.example.boltnew.data.model.advert.StrapiAdvertUpdateRequest
-import com.example.boltnew.data.model.advert.StrapiCategory
-import io.ktor.client.call.*
-import io.ktor.client.request.*
+import io.ktor.client.call.body
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 
 class AdvertApiService {
-    
-    private val client = HttpClient.client
-    private val baseUrl = "https://8c0c-86-156-238-78.ngrok-free.app/api"
-    
+
     suspend fun getAllAdverts(): Result<StrapiAdvertResponse> {
         return try {
             val response = client.get("$baseUrl/adverts") {
@@ -103,7 +109,6 @@ class AdvertApiService {
             
             val response = client.put("$baseUrl/adverts/$id") {
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -126,29 +131,20 @@ class AdvertApiService {
         }
     }
     
-    suspend fun deleteAdvert(id: String, token: String): Result<AdvertCreateResponse> {
+    suspend fun deleteAdvert(id: String, token: String): Result<Boolean> {
         return try {
-            println("🗑️ Deleting advert $id...")
-            
             val response = client.delete("$baseUrl/adverts/$id") {
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 contentType(ContentType.Application.Json)
             }
-            
-            println("📤 Delete advert response status: ${response.status}")
-            
-            if (response.status.isSuccess()) {
-                val advertResponse = response.body<AdvertCreateResponse>()
-                println("✅ Advert deleted successfully")
-                Result.success(advertResponse)
+            if (response.status.value == 204) {
+                Result.success(true)
             } else {
                 val errorBody = response.bodyAsText()
                 println("❌ Advert deletion failed: $errorBody")
                 Result.failure(Exception("Advert deletion failed: ${response.status} - $errorBody"))
             }
         } catch (e: Exception) {
-            println("💥 Advert deletion error: ${e.message}")
             e.printStackTrace()
             Result.failure(e)
         }
@@ -158,7 +154,6 @@ class AdvertApiService {
         return try {
             val response = client.get("$baseUrl/categories") {
                 contentType(ContentType.Application.Json)
-                header("ngrok-skip-browser-warning", "true")
             }
             val categoriesResponse = response.body<StrapiCategoriesResponse>()
             val categoryNames = categoriesResponse.data.map { it.name }.distinct()
@@ -245,27 +240,3 @@ class AdvertApiService {
     }
 }
 
-@kotlinx.serialization.Serializable
-data class StrapiCategoriesResponse(
-    @kotlinx.serialization.SerialName("data")
-    val data: List<StrapiCategory>
-)
-
-@Serializable
-data class StrapiCategoryOption(
-    val id: Int,
-    val name: String,
-    val slug: String
-)
-
-@Serializable
-data class ProfileAdvertUpdateRequest(
-    @SerialName("data")
-    val data: ProfileAdvertUpdateData
-)
-
-@Serializable
-data class ProfileAdvertUpdateData(
-    @SerialName("adverts")
-    val adverts: List<String>
-)

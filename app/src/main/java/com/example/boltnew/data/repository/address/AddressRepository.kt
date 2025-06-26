@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.address
 
 import com.example.boltnew.data.model.auth.profile.Address
 

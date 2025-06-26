@@ -1,4 +1,4 @@
-package com.example.boltnew.ui.screens
+package com.example.boltnew.ui.screens.adverts
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -12,6 +12,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -30,6 +31,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun AdvertScreen(
     onAdvertClick: (Int) -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AdvertViewModel = koinViewModel()
 ) {
@@ -66,6 +68,14 @@ fun AdvertScreen(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Refresh",
                         tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                // Logout Button
+                IconButton(onClick = onLogout) {
+                    Icon(
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             },

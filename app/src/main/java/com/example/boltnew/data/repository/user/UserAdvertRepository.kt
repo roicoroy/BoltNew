@@ -1,9 +1,9 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.user
 
 import android.content.Context
 import android.net.Uri
+import com.example.boltnew.data.model.StrapiCategoryOption
 import com.example.boltnew.data.model.auth.profile.UserAdvert
-import com.example.boltnew.data.network.StrapiCategoryOption
 
 interface UserAdvertRepository {
     suspend fun createAdvert(

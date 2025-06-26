@@ -47,39 +47,41 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.navigation:navigation-compose:2.7.6")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
+    implementation("io.coil-kt:coil-compose:2.7.0")
     
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.7.2")
+    implementation("androidx.room:room-ktx:2.7.2")
+    kapt("androidx.room:room-compiler:2.7.2")
     
     // Koin
-    implementation("io.insert-koin:koin-android:3.5.3")
-    implementation("io.insert-koin:koin-androidx-compose:3.5.3")
+    implementation("io.insert-koin:koin-android:4.1.0")
+    implementation("io.insert-koin:koin-androidx-compose:4.0.4")
     
     // Animation
-    implementation("androidx.compose.animation:animation:1.5.8")
+    implementation("androidx.compose.animation:animation:1.8.3")
     
     // Camera and Image handling
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
     implementation("androidx.activity:activity-compose:1.8.2")
     
     // Date picker
     implementation("io.github.vanpra.compose-material-dialogs:datetime:0.9.0")
     
     // Permissions
-    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.37.0")
     
     // Swipe refresh
-    implementation("androidx.compose.material:material:1.5.8")
+    implementation("androidx.compose.material:material:1.8.3")
     
     // Material Icons Extended
-    implementation("androidx.compose.material:material-icons-extended:1.5.8")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+//    implementation("io.github.vanpra:compose-material-dialogs-core:0.9.0")
 
     // Ktor HTTP Client
     implementation(libs.ktor.client.android)

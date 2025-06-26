@@ -6,6 +6,7 @@ import com.example.boltnew.data.model.auth.register.RegisterRequest
 import com.example.boltnew.data.model.auth.register.RegisterResponse
 import com.example.boltnew.data.model.auth.profile.StrapiProfile
 import com.example.boltnew.data.model.auth.user.StrapiUser
+import com.example.boltnew.utils.RequestState
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -15,10 +16,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class AuthApiService {
-    
-    private val client = HttpClient.client
-    private val baseUrl = "https://8c0c-86-156-238-78.ngrok-free.app/api"
-    
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -90,7 +88,6 @@ class AuthApiService {
             val profileResponse = client.get("$baseUrl/profiles/$profileDocumentId") {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $token")
-                header("ngrok-skip-browser-warning", "true")
                 parameter("populate", "*")
             }
             
@@ -144,7 +141,7 @@ class AuthApiService {
     }
     
     // Method to get raw profile data for debugging
-    suspend fun getProfileDataRaw(token: String): Result<String> {
+    suspend fun getProfileDataRaw(token: String): RequestState<String> {
         return try {
             val response = client.get("$baseUrl/users/me") {
                 contentType(ContentType.Application.Json)
@@ -155,10 +152,10 @@ class AuthApiService {
             
             val rawData = response.bodyAsText()
             println("📋 Raw Profile Data: $rawData")
-            Result.success(rawData)
+            RequestState.Success(rawData)
         } catch (e: Exception) {
             println("❌ Raw Profile Data Error: ${e.message}")
-            Result.failure(e)
+            RequestState.Error(e.toString())
         }
     }
     

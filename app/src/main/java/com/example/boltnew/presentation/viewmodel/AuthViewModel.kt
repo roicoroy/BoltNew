@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.user.User
-import com.example.boltnew.data.repository.AuthRepository
+import com.example.boltnew.data.repository.auth.AuthRepository
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -172,11 +172,11 @@ class AuthViewModel(
                 
                 val result = authRepository.getUserProfile()
                 
-                if (result.isSuccess) {
-                    _userProfile.value = RequestState.Success(result.getOrThrow())
+                if (result.isSuccess()) {
+                    _userProfile.value = RequestState.Success(result.getSuccessData())
                 } else {
                     _userProfile.value = RequestState.Error(
-                        result.exceptionOrNull()?.message ?: "Failed to load profile"
+                        result.getErrorMessage().toString() ?: "Failed to load profile"
                     )
                 }
             } catch (e: Exception) {

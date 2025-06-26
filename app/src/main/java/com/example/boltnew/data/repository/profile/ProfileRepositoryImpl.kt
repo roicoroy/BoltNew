@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.profile
 
 import android.content.Context
 import android.net.Uri
@@ -15,6 +15,7 @@ import com.example.boltnew.data.network.UploadApiService
 import com.example.boltnew.data.network.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDateTime
 
 @RequiresApi(Build.VERSION_CODES.O)
 class ProfileRepositoryImpl(
@@ -190,7 +191,7 @@ class ProfileRepositoryImpl(
     }
     
     private fun getDefaultProfile(): Profile {
-        val now = java.time.LocalDateTime.now().toString()
+        val now = LocalDateTime.now().toString()
         
         return Profile(
             id = 1,

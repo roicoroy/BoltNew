@@ -1,9 +1,10 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.user
 
 import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.example.boltnew.data.model.StrapiCategoryOption
 import com.example.boltnew.data.model.advert.StrapiAdvertCreateData
 import com.example.boltnew.data.model.advert.StrapiAdvertCreateRequest
 import com.example.boltnew.data.model.advert.StrapiAdvertUpdateData
@@ -11,7 +12,6 @@ import com.example.boltnew.data.model.advert.StrapiAdvertUpdateRequest
 import com.example.boltnew.data.model.auth.profile.UserAdvert
 import com.example.boltnew.data.network.AdvertApiService
 import com.example.boltnew.data.network.AuthApiService
-import com.example.boltnew.data.network.StrapiCategoryOption
 import com.example.boltnew.data.network.TokenManager
 import com.example.boltnew.data.network.UploadApiService
 
@@ -218,29 +218,29 @@ class UserAdvertRepositoryImpl(
             val token = tokenManager.getToken()
                 ?: return Result.failure(Exception("No authentication token available"))
             
-            println("🗑️ Deleting advert: $advertDocumentId")
-            
-            // Step 1: Query the Profile to get current adverts
-            println("🔍 Querying current profile to get existing adverts...")
-            val profileResult = authApiService.getUserProfile(token)
-            
-            if (profileResult.isFailure) {
-                println("⚠️ Failed to query profile for advert deletion")
-                return Result.failure(Exception("Failed to query profile: ${profileResult.exceptionOrNull()?.message}"))
-            }
-            
-            val currentProfile = profileResult.getOrThrow()
-            println("📋 Current profile has ${currentProfile.data.adverts.size} existing adverts")
-            
-            // Step 2: Find the advert to delete and get its ID
-            val advertToDelete = currentProfile.data.adverts.find { it.documentId == advertDocumentId }
-            if (advertToDelete == null) {
-                println("⚠️ Advert not found in profile")
-                return Result.failure(Exception("Advert not found in profile"))
-            }
+//            println("🗑️ Deleting advert: $advertDocumentId")
+//
+//            // Step 1: Query the Profile to get current adverts
+//            println("🔍 Querying current profile to get existing adverts...")
+//            val profileResult = authApiService.getUserProfile(token)
+//
+//            if (profileResult.isFailure) {
+//                println("⚠️ Failed to query profile for advert deletion")
+//                return Result.failure(Exception("Failed to query profile: ${profileResult.exceptionOrNull()?.message}"))
+//            }
+//
+//            val currentProfile = profileResult.getOrThrow()
+//            println("📋 Current profile has ${currentProfile.data.adverts.size} existing adverts")
+//
+//            // Step 2: Find the advert to delete and get its ID
+//            val advertToDelete = currentProfile.data.adverts.find { it.documentId == advertDocumentId }
+//            if (advertToDelete == null) {
+//                println("⚠️ Advert not found in profile")
+//                return Result.failure(Exception("Advert not found in profile"))
+//            }
             
             // Step 3: Delete the advert
-            val deleteResult = advertApiService.deleteAdvert(advertToDelete.documentId, token)
+            val deleteResult = advertApiService.deleteAdvert(advertDocumentId, token)
             
             if (deleteResult.isFailure) {
                 return Result.failure(deleteResult.exceptionOrNull() ?: Exception("Advert deletion failed"))
@@ -248,25 +248,25 @@ class UserAdvertRepositoryImpl(
             
             println("✅ Advert deleted from Strapi successfully")
             
-            // Step 4: Update profile to remove the deleted advert from the list
-            val remainingAdvertIds = currentProfile.data.adverts
-                .filter { it.documentId != advertDocumentId }
-                .map { it.id.toString() }
-            
-            println("🔗 Updating profile with remaining advert IDs: ${remainingAdvertIds.joinToString()}")
-            
-            val updateProfileResult = advertApiService.updateProfileAdverts(
-                profileDocumentId = profileDocumentId,
-                advertIds = remainingAdvertIds,
-                token = token
-            )
-            
-            if (updateProfileResult.isFailure) {
-                println("⚠️ Advert deleted but failed to update profile: ${updateProfileResult.exceptionOrNull()?.message}")
-                // Still return success since advert was deleted
-            } else {
-                println("🔗 Profile updated successfully after advert deletion")
-            }
+//            // Step 4: Update profile to remove the deleted advert from the list
+//            val remainingAdvertIds = currentProfile.data.adverts
+//                .filter { it.documentId != advertDocumentId }
+//                .map { it.id.toString() }
+//
+//            println("🔗 Updating profile with remaining advert IDs: ${remainingAdvertIds.joinToString()}")
+//
+//            val updateProfileResult = advertApiService.updateProfileAdverts(
+//                profileDocumentId = profileDocumentId,
+//                advertIds = remainingAdvertIds,
+//                token = token
+//            )
+//
+//            if (updateProfileResult.isFailure) {
+//                println("⚠️ Advert deleted but failed to update profile: ${updateProfileResult.exceptionOrNull()?.message}")
+//                // Still return success since advert was deleted
+//            } else {
+//                println("🔗 Profile updated successfully after advert deletion")
+//            }
             
             Result.success(true)
             

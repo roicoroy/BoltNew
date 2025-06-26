@@ -1,4 +1,4 @@
-package com.example.boltnew.data.repository
+package com.example.boltnew.data.repository.advert
 
 import com.example.boltnew.data.model.advert.Advert
 import kotlinx.coroutines.flow.Flow
