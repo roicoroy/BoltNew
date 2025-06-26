@@ -22,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.boltnew.presentation.viewmodel.AdvertViewModel
+import com.example.boltnew.presentation.viewmodel.ProfileViewModel
 import com.example.boltnew.ui.components.AdvertCard
+import com.example.boltnew.ui.components.ProfileEditModal
 import com.example.boltnew.utils.DisplayResult
 import org.koin.androidx.compose.koinViewModel
 
@@ -33,13 +35,17 @@ fun AdvertScreen(
     onAdvertClick: (Int) -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AdvertViewModel = koinViewModel()
+    viewModel: AdvertViewModel = koinViewModel(),
+    profileViewModel: ProfileViewModel = koinViewModel()
 ) {
     val advertsState by viewModel.advertsState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    
+    // Profile state for modal
+    val profileUiState by profileViewModel.uiState.collectAsState()
     
     // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
@@ -290,6 +296,26 @@ fun AdvertScreen(
                 backgroundColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.primary
             )
+        }
+    }
+    
+    // Profile Edit Modal for profile creation
+    ProfileEditModal(
+        isVisible = profileUiState.showProfileModal,
+        profile = null, // null = create mode
+        isLoading = profileUiState.isProfileLoading,
+        onDismiss = { profileViewModel.hideProfileEditModal() },
+        onSave = { dateOfBirth ->
+            profileViewModel.createProfile(dateOfBirth)
+        }
+    )
+    
+    // Show operation message
+    profileUiState.operationMessage?.let { message ->
+        LaunchedEffect(message) {
+            // Auto-clear message after 3 seconds
+            kotlinx.coroutines.delay(3000)
+            profileViewModel.clearOperationMessage()
         }
     }
 }
