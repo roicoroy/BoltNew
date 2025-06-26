@@ -254,8 +254,27 @@ class ProfileRepositoryImpl(
     }
     
     override suspend fun deleteProfile(profile: Profile) {
-        val profileEntity = profile.toEntity()
-        profileDao.deleteProfile(profileEntity)
+        try {
+            println("🗑️ ProfileRepository - Deleting profile: ${profile.documentId}")
+            val profileEntity = profile.toEntity()
+            profileDao.deleteProfile(profileEntity)
+            println("✅ ProfileRepository - Profile deleted successfully")
+        } catch (e: Exception) {
+            println("💥 ProfileRepository - Failed to delete profile: ${e.message}")
+            throw e
+        }
+    }
+    
+    override suspend fun deleteAllProfiles(): Result<Boolean> {
+        return try {
+            println("🗑️ ProfileRepository - Deleting all profiles from database...")
+            profileDao.deleteAllProfiles()
+            println("✅ ProfileRepository - All profiles deleted successfully")
+            Result.success(true)
+        } catch (e: Exception) {
+            println("💥 ProfileRepository - Failed to delete all profiles: ${e.message}")
+            Result.failure(e)
+        }
     }
     
     override suspend fun initializeDefaultProfile() {

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.boltnew.data.model.auth.profile.Profile
 import com.example.boltnew.data.model.auth.user.User
 import com.example.boltnew.data.repository.auth.AuthRepository
+import com.example.boltnew.data.repository.profile.ProfileRepository
 import com.example.boltnew.utils.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AuthViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository // Add ProfileRepository for database cleanup
 ) : ViewModel() {
     
     private val _authState = MutableStateFlow<RequestState<Boolean>>(RequestState.Idle)
@@ -126,20 +128,69 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
+                println("🚪 AuthViewModel - Starting logout process...")
                 
-                val result = authRepository.logout()
+                // Step 1: Logout from server (clear server session)
+                val token = authRepository.getCurrentToken()
+                if (token != null) {
+                    println("🌐 AuthViewModel - Logging out from server...")
+                    val result = authRepository.logout()
+                    if (result.isSuccess) {
+                        println("✅ AuthViewModel - Server logout successful")
+                    } else {
+                        println("⚠️ AuthViewModel - Server logout failed, continuing with local cleanup")
+                    }
+                } else {
+                    println("ℹ️ AuthViewModel - No token found, skipping server logout")
+                }
                 
+                // Step 2: Clear local database data
+                println("🗑️ AuthViewModel - Clearing local database...")
+                try {
+                    // Get current profile to delete it
+                    profileRepository.getProfile().collect { profile ->
+                        if (profile != null) {
+                            println("🗑️ AuthViewModel - Deleting profile: ${profile.documentId}")
+                            profileRepository.deleteProfile(profile)
+                            println("✅ AuthViewModel - Profile deleted from local database")
+                        } else {
+                            println("ℹ️ AuthViewModel - No profile found in local database")
+                        }
+                        
+                        // Break out of collect after first emission
+                        return@collect
+                    }
+                } catch (e: Exception) {
+                    println("⚠️ AuthViewModel - Failed to clear local database: ${e.message}")
+                    // Continue with logout even if database cleanup fails
+                }
+                
+                // Step 3: Clear authentication state and user data
+                println("🧹 AuthViewModel - Clearing authentication state...")
                 _authState.value = RequestState.Success(false)
                 _currentUser.value = RequestState.Idle
                 _userProfile.value = RequestState.Idle
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    successMessage = "Logged out successfully"
+                    successMessage = "Logged out successfully",
+                    errorMessage = null
                 )
+                
+                println("✅ AuthViewModel - Logout process completed successfully")
+                
             } catch (e: Exception) {
+                println("💥 AuthViewModel - Logout error: ${e.message}")
+                e.printStackTrace()
+                
+                // Even if there's an error, clear the local state
+                _authState.value = RequestState.Success(false)
+                _currentUser.value = RequestState.Idle
+                _userProfile.value = RequestState.Idle
+                
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Logout failed: ${e.message}"
+                    errorMessage = "Logout completed with some issues: ${e.message}"
                 )
             }
         }

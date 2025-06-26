@@ -12,5 +12,6 @@ interface ProfileRepository {
     suspend fun createProfile(dateOfBirth: String, userId: Int): Result<Profile>
     suspend fun updateAvatar(avatarUrl: String, avatarPath: String)
     suspend fun deleteProfile(profile: Profile)
+    suspend fun deleteAllProfiles(): Result<Boolean> // Add method to clear all profile data
     suspend fun initializeDefaultProfile()
 }

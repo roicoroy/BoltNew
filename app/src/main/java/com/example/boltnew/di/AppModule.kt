@@ -54,9 +54,9 @@ val appModule = module {
     single<AddressRepository> { AddressRepositoryImpl(get(), get(), get()) }
     single<UserAdvertRepository> { UserAdvertRepositoryImpl(get(), get(), get(), get()) }
 
-    // ViewModels
+    // ViewModels - AuthViewModel now depends on ProfileRepository for database cleanup
     viewModel { AdvertViewModel(get(), get()) }
     viewModel { AdvertDetailViewModel(get()) }
     viewModel { ProfileViewModel(get(), get(), get(), get()) }
-    viewModel { AuthViewModel(get()) }
+    viewModel { AuthViewModel(get(), get()) } // Added ProfileRepository dependency
 }
