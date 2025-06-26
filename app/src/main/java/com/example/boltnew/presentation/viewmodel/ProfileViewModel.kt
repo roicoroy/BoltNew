@@ -117,6 +117,57 @@ class ProfileViewModel(
         }
     }
     
+    fun createProfile(dateOfBirth: String) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isProfileLoading = true)
+                
+                // Get current user ID from auth repository
+                val currentUserResult = authRepository.getCurrentUser()
+                if (currentUserResult.isFailure) {
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Failed to get current user information"
+                    )
+                    return@launch
+                }
+                
+                val currentUser = currentUserResult.getOrThrow()
+                println("🆕 Creating profile for user: ${currentUser.id}")
+                
+                val result = profileRepository.createProfile(dateOfBirth, currentUser.id)
+                
+                if (result.isSuccess) {
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Profile created successfully!",
+                        showProfileModal = false
+                    )
+                    
+                    println("✅ Profile created successfully")
+                    
+                    // Reload profile to show new profile
+                    loadUserProfile()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    _uiState.value = _uiState.value.copy(
+                        isProfileLoading = false,
+                        operationMessage = "Failed to create profile: $error"
+                    )
+                    println("❌ Profile creation failed: $error")
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isProfileLoading = false,
+                    operationMessage = "Failed to create profile: ${e.message}"
+                )
+                println("💥 Profile creation error: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
     fun updateAvatar(context: Context, imageUri: Uri) {
         viewModelScope.launch {
             try {

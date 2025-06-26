@@ -26,20 +26,22 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProfileEditModal(
     isVisible: Boolean,
-    profile: Profile?,
+    profile: Profile? = null, // null for create, non-null for edit
     isLoading: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (dateOfBirth: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (!isVisible || profile == null) return
+    if (!isVisible) return
+    
+    val isCreateMode = profile == null
     
     // Date picker state
     val dateDialogState = rememberMaterialDialogState()
     var selectedDate by remember { 
         mutableStateOf(
             try {
-                if (profile.dateOfBirth.isNotBlank()) {
+                if (!isCreateMode && profile?.dateOfBirth?.isNotBlank() == true) {
                     LocalDate.parse(profile.dateOfBirth)
                 } else {
                     LocalDate.now().minusYears(25)
@@ -81,7 +83,7 @@ fun ProfileEditModal(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Edit Profile",
+                        text = if (isCreateMode) "Create Profile" else "Edit Profile",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -101,56 +103,89 @@ fun ProfileEditModal(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                // Profile Info Display (Read-only)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                // Profile Info Display (Read-only for edit mode)
+                if (!isCreateMode && profile != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "User",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = profile.displayName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = "Email",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = profile.email,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+                
+                // Create mode info
+                if (isCreateMode) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
+                            modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "User",
-                                tint = MaterialTheme.colorScheme.primary,
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Info",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = profile.displayName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = "Email",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = profile.email,
+                                text = "Create your profile to access all features",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
                 
                 // Date of Birth Section
                 Text(
@@ -244,7 +279,7 @@ fun ProfileEditModal(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Update Profile")
+                            Text(if (isCreateMode) "Create Profile" else "Update Profile")
                         }
                     }
                 }

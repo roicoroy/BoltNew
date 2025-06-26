@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import com.example.boltnew.ui.screens.adverts.AdvertScreen
 import com.example.boltnew.ui.screens.ProfileScreen
 import com.example.boltnew.ui.screens.auth.LoginScreen
 import com.example.boltnew.ui.screens.auth.RegisterScreen
+import com.example.boltnew.utils.RequestState
 import org.koin.androidx.compose.koinViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -157,12 +159,22 @@ fun AppNavigation(
 @Composable
 private fun BottomNavigationBar(
     navController: NavHostController,
-    authViewModel: AuthViewModel = koinViewModel()
+    authViewModel: AuthViewModel = koinViewModel(),
+    profileViewModel: ProfileViewModel = koinViewModel()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val currentUser by authViewModel.currentUser.collectAsState()
+    
+    // Check if user has a profile
+    val hasProfile = when (val userState = currentUser) {
+        is RequestState.Success -> {
+            val user = userState.data
+            user.profile.documentId.isNotBlank()
+        }
+        else -> false
+    }
 
     // Only show bottom navigation on main screens
     val showBottomNav = currentDestination?.route in listOf("advert", "profile")
@@ -180,17 +192,32 @@ private fun BottomNavigationBar(
                     }
                 }
             )
-            NavigationBarItem(
-                enabled = currentUser.getSuccessData().profile.documentId.isBlank(),
-                icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                label = { Text("Profile") },
-                selected = currentDestination?.hierarchy?.any { it.route == "profile" } == true,
-                onClick = {
-                    navController.navigate("profile") {
-                        launchSingleTop = true
+            
+            // Profile tab - show different behavior based on profile existence
+            if (hasProfile) {
+                // User has profile - show normal profile tab
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    selected = currentDestination?.hierarchy?.any { it.route == "profile" } == true,
+                    onClick = {
+                        navController.navigate("profile") {
+                            launchSingleTop = true
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                // User doesn't have profile - show create profile button
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Add, contentDescription = "Create Profile") },
+                    label = { Text("Create Profile") },
+                    selected = false,
+                    onClick = {
+                        // Show profile creation modal
+                        profileViewModel.showProfileEditModal()
+                    }
+                )
+            }
         }
     }
 }

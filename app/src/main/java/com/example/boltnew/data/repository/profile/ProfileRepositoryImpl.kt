@@ -72,6 +72,82 @@ class ProfileRepositoryImpl(
         }
     }
     
+    override suspend fun createProfile(dateOfBirth: String, userId: Int): Result<Profile> {
+        return try {
+            val token = tokenManager.getToken()
+                ?: return Result.failure(Exception("No authentication token available"))
+            
+            println("🆕 Creating new profile for user: $userId")
+            
+            // Step 1: Create profile via API
+            val createResult = profileApiService.createProfile(dateOfBirth, token)
+            
+            if (createResult.isFailure) {
+                return Result.failure(createResult.exceptionOrNull() ?: Exception("Profile creation failed"))
+            }
+            
+            val createdProfile = createResult.getOrThrow()
+            println("✅ Profile created with ID: ${createdProfile.data.id}")
+            
+            // Step 2: Link profile to user
+            val linkResult = profileApiService.linkProfileToUser(
+                profileDocumentId = createdProfile.data.documentId,
+                userId = userId,
+                token = token
+            )
+            
+            if (linkResult.isFailure) {
+                println("⚠️ Profile created but linking to user failed: ${linkResult.exceptionOrNull()?.message}")
+                // Continue anyway since profile was created
+            } else {
+                println("🔗 Profile linked to user successfully")
+            }
+            
+            // Step 3: Create domain model for the new profile
+            val userInfo = tokenManager.getUsername() ?: "User"
+            val userEmail = tokenManager.getEmail() ?: "user@example.com"
+            
+            val domainProfile = Profile(
+                id = createdProfile.data.id,
+                documentId = createdProfile.data.documentId,
+                dateOfBirth = createdProfile.data.dob,
+                createdAt = createdProfile.data.createdAt,
+                updatedAt = createdProfile.data.updatedAt,
+                publishedAt = createdProfile.data.publishedAt,
+                user = ProfileUser(
+                    id = userId,
+                    documentId = "", // Will be populated when we fetch full profile
+                    username = userInfo,
+                    email = userEmail,
+                    blocked = false,
+                    confirmed = true,
+                    provider = "local",
+                    createdAt = createdProfile.data.createdAt,
+                    updatedAt = createdProfile.data.updatedAt,
+                    publishedAt = createdProfile.data.publishedAt
+                ),
+                addresses = emptyList(),
+                avatar = null,
+                userAdverts = emptyList()
+            )
+            
+            // Step 4: Cache profile locally
+            try {
+                insertProfile(domainProfile)
+                println("💾 Profile cached locally")
+            } catch (e: Exception) {
+                println("⚠️ Failed to cache profile locally: ${e.message}")
+            }
+            
+            Result.success(domainProfile)
+            
+        } catch (e: Exception) {
+            println("💥 Profile creation process failed: ${e.message}")
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+    
     override suspend fun updateProfileDob(profileDocumentId: String, dateOfBirth: String): Result<Profile> {
         return try {
             val token = tokenManager.getToken()

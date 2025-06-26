@@ -9,6 +9,7 @@ interface ProfileRepository {
     suspend fun insertProfile(profile: Profile)
     suspend fun updateProfile(profile: Profile)
     suspend fun updateProfileDob(profileDocumentId: String, dateOfBirth: String): Result<Profile>
+    suspend fun createProfile(dateOfBirth: String, userId: Int): Result<Profile>
     suspend fun updateAvatar(avatarUrl: String, avatarPath: String)
     suspend fun deleteProfile(profile: Profile)
     suspend fun initializeDefaultProfile()
